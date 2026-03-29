@@ -911,6 +911,20 @@ function saveCli(){
   renderAll();
 }
 
+function delCli(id){
+  const c=S.clientes.find(x=>x.id===id);
+  if(!c)return;
+  const causas=S.expedientes.filter(e=>e.clienteId===id).length;
+  const pend=S.honorarios.filter(h=>h.clienteId===id&&h.saldo>0).reduce((s,h)=>s+h.saldo,0);
+  let msg=`¿Eliminar al cliente "${c.nombre}"?`;
+  if(causas>0) msg+=`\n⚠ Tiene ${causas} expediente${causas!==1?'s':''} asociado${causas!==1?'s':''}.`;
+  if(pend>0) msg+=`\n⚠ Tiene honorarios pendientes por $${pend.toLocaleString('es-AR')}.`;
+  msg+='\n\nEsta acción no se puede deshacer.';
+  if(!confirm(msg))return;
+  S.clientes=S.clientes.filter(x=>x.id!==id);
+  save();renderAll();
+}
+
 function renderCli(){
   const q=(document.getElementById('s-cli')?.value||'').toLowerCase();
   const rows=S.clientes.filter(c=>c.nombre.toLowerCase().includes(q)||(c.dni||'').includes(q)||(c.email||'').toLowerCase().includes(q));
@@ -930,7 +944,10 @@ function renderCli(){
         ${pend>0?` <span class="tag tag-pending">${$m(pend)} pend.</span>`:''}
       </td>
       <td data-label="">
-        <button class="btn btn-ghost btn-xs" onclick="editCli('${c.id}')">✏️ Editar</button>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-xs" onclick="editCli('${c.id}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-xs" onclick="delCli('${c.id}')">🗑</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
