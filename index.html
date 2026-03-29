@@ -788,6 +788,20 @@ function clr(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el
 // ── EXPEDIENTES ──
 let expEditId=null;
 
+function delExp(id){
+  const e=S.expedientes.find(x=>x.id===id);
+  if(!e)return;
+  const venc=S.vencimientos.filter(v=>v.expId===id).length;
+  const hon=S.honorarios.filter(h=>h.expId===id).length;
+  let msg=`¿Eliminar el expediente "${e.nro}"?`;
+  if(venc>0) msg+=`\n⚠ Tiene ${venc} vencimiento${venc!==1?'s':''} asociado${venc!==1?'s':''}.`;
+  if(hon>0) msg+=`\n⚠ Tiene ${hon} honorario${hon!==1?'s':''} asociado${hon!==1?'s':''}.`;
+  msg+='\n\nEsta acción no se puede deshacer.';
+  if(!confirm(msg))return;
+  S.expedientes=S.expedientes.filter(x=>x.id!==id);
+  save();renderAll();
+}
+
 function editExp(id){
   const e=S.expedientes.find(x=>x.id===id);
   if(!e)return;
@@ -864,7 +878,12 @@ function renderExp(){
       <td data-label="Estado">${etag[e.estado]||etag['Activo']}</td>
       <td data-label="Vencimiento">${vt}</td>
       <td data-label="Docs"><button class="btn btn-ghost btn-xs" onclick="toggleDocs('${e.id}')" title="Ver documentos">📎 ${ndocs} doc${ndocs!==1?'s':''}</button></td>
-      <td data-label=""><button class="btn btn-ghost btn-xs" onclick="editExp('${e.id}')" title="Editar">✏️ Editar</button></td>
+      <td data-label="">
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-xs" onclick="editExp('${e.id}')" title="Editar">✏️ Editar</button>
+          <button class="btn btn-danger btn-xs" onclick="delExp('${e.id}')" title="Eliminar">🗑</button>
+        </div>
+      </td>
     </tr>
     <tr class="exp-row-docs" id="docs-row-${e.id}" style="display:none">
       <td colspan="8">
@@ -1258,7 +1277,7 @@ function renderFin(){
         <td data-label="Concepto" style="font-size:12px">${h.concepto||'—'}</td>
         <td data-label="Monto"><b style="color:var(--gold)">${$m(h.monto)}</b></td>
         <td data-label="Saldo"><b style="color:${saldoColor};font-size:12px">${saldoLabel}</b></td>
-        <td data-label=""><button class="btn btn-danger btn-xs" onclick="delHonorario('${h.id}')">✕</button></td>
+        <td data-label=""><button class="btn btn-danger btn-xs" onclick="delHonorario('${h.id}')" title="Eliminar honorario">🗑</button></td>
       </tr>`;
     }).join('');
 
