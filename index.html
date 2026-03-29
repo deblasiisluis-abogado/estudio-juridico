@@ -364,7 +364,7 @@ textarea{resize:vertical;min-height:75px;}
 <div class="page" id="page-clientes">
   <div class="ph">
     <div><div class="ph-title">Clientes</div><div class="ph-sub">Directorio</div></div>
-    <button class="btn btn-gold" onclick="cliEditId=null;document.getElementById('m-cli-title').textContent='Nuevo Cliente';clr(['c-nom','c-dni','c-tel','c-email','c-dom','c-notas']);openM('m-cli')">＋ Nuevo cliente</button>
+    <button class="btn btn-gold" onclick="cliEditId=null;document.getElementById('m-cli-title').textContent='Nuevo Cliente';clr(['c-nom','c-dni','c-pasaporte','c-tel','c-tel2','c-email','c-dom','c-dom-legal','c-ocupacion','c-empresa','c-notas']);openM('m-cli')">＋ Nuevo cliente</button>
   </div>
   <div class="tcard">
     <div class="tcard-header">
@@ -372,7 +372,7 @@ textarea{resize:vertical;min-height:75px;}
       <div class="search-wrap">🔍<input type="text" placeholder="Buscar..." id="s-cli" oninput="renderCli()"></div>
     </div>
     <div style="overflow-x:auto">
-      <table><thead><tr><th>Nombre</th><th>DNI/CUIT</th><th>Teléfono</th><th>Email</th><th>Causas / Pendiente</th><th></th></tr></thead>
+      <table><thead><tr><th>Nombre</th><th>DNI/CUIT</th><th>Edad / F. Nac.</th><th>Teléfono</th><th>Email</th><th>Causas</th><th></th></tr></thead>
       <tbody id="t-cli"></tbody></table>
     </div>
   </div>
@@ -542,19 +542,65 @@ textarea{resize:vertical;min-height:75px;}
 
 <!-- Cliente -->
 <div class="modal-wrap" id="m-cli">
-  <div class="modal">
+  <div class="modal" style="max-width:640px">
     <div class="modal-title" id="m-cli-title">Nuevo Cliente</div>
+
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin-bottom:10px;font-weight:700">Datos personales</div>
     <div class="form-grid">
-      <div class="fg full"><label>Nombre / Razón social</label><input id="c-nom" placeholder="Juan García"></div>
-      <div class="fg"><label>DNI / CUIT</label><input id="c-dni" placeholder="20.123.456-7"></div>
-      <div class="fg"><label>Teléfono</label><input id="c-tel" placeholder="11 4567-8901"></div>
-      <div class="fg full"><label>Email</label><input type="email" id="c-email" placeholder="cliente@email.com"></div>
-      <div class="fg full"><label>Domicilio</label><input id="c-dom" placeholder="Av. Corrientes 1234, CABA"></div>
-      <div class="fg full"><label>Notas</label><textarea id="c-notas" placeholder="Observaciones..."></textarea></div>
+      <div class="fg full"><label>Nombre completo / Razón social</label><input id="c-nom" placeholder="Juan García"></div>
+      <div class="fg"><label>Fecha de nacimiento</label><input type="date" id="c-fnac"></div>
+      <div class="fg"><label>Nacionalidad</label>
+        <select id="c-nac">
+          <option value="">Seleccionar...</option>
+          <option>Argentina</option><option>Uruguaya</option><option>Brasileña</option>
+          <option>Chilena</option><option>Paraguaya</option><option>Boliviana</option>
+          <option>Peruana</option><option>Colombiana</option><option>Venezolana</option>
+          <option>Española</option><option>Italiana</option><option>Otra</option>
+        </select>
+      </div>
+      <div class="fg"><label>Estado civil</label>
+        <select id="c-ecivil">
+          <option value="">Seleccionar...</option>
+          <option>Soltero/a</option><option>Casado/a</option><option>Divorciado/a</option>
+          <option>Viudo/a</option><option>Unión convivencial</option>
+        </select>
+      </div>
+      <div class="fg"><label>Género</label>
+        <select id="c-genero">
+          <option value="">Seleccionar...</option>
+          <option>Masculino</option><option>Femenino</option><option>No binario</option><option>Prefiero no indicar</option>
+        </select>
+      </div>
+      <div class="fg"><label>DNI / CUIT / CUIL</label><input id="c-dni" placeholder="20.123.456-7"></div>
+      <div class="fg"><label>Pasaporte (opcional)</label><input id="c-pasaporte" placeholder="AAB123456"></div>
     </div>
+
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin:16px 0 10px;font-weight:700">Contacto</div>
+    <div class="form-grid">
+      <div class="fg"><label>Teléfono / Celular</label><input id="c-tel" placeholder="11 4567-8901"></div>
+      <div class="fg"><label>Teléfono alternativo</label><input id="c-tel2" placeholder="11 4567-8902"></div>
+      <div class="fg full"><label>Email</label><input type="email" id="c-email" placeholder="cliente@email.com"></div>
+      <div class="fg full"><label>Domicilio real</label><input id="c-dom" placeholder="Av. Corrientes 1234, CABA"></div>
+      <div class="fg full"><label>Domicilio constituido (legal)</label><input id="c-dom-legal" placeholder="Domicilio para notificaciones legales"></div>
+    </div>
+
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin:16px 0 10px;font-weight:700">Datos laborales / adicionales</div>
+    <div class="form-grid">
+      <div class="fg"><label>Ocupación / Profesión</label><input id="c-ocupacion" placeholder="Ej: Comerciante, Empleado..."></div>
+      <div class="fg"><label>Empleador / Empresa</label><input id="c-empresa" placeholder="Nombre de la empresa"></div>
+      <div class="fg full"><label>Cómo llegó al estudio</label>
+        <select id="c-origen">
+          <option value="">Seleccionar...</option>
+          <option>Referido por otro cliente</option><option>Búsqueda en internet</option>
+          <option>Redes sociales</option><option>Conocido personal</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="fg full"><label>Notas / Observaciones</label><textarea id="c-notas" placeholder="Información adicional relevante del cliente..."></textarea></div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeM('m-cli');cliEditId=null">Cancelar</button>
-      <button class="btn btn-gold" onclick="saveCli()">Guardar</button>
+      <button class="btn btn-gold" onclick="saveCli()">Guardar cliente</button>
     </div>
   </div>
 </div>
@@ -982,12 +1028,31 @@ function editCli(id){
   cliEditId=id;
   document.getElementById('m-cli-title').textContent='Editar Cliente';
   document.getElementById('c-nom').value=c.nombre||'';
+  document.getElementById('c-fnac').value=c.fnac||'';
+  document.getElementById('c-nac').value=c.nacionalidad||'';
+  document.getElementById('c-ecivil').value=c.estadoCivil||'';
+  document.getElementById('c-genero').value=c.genero||'';
   document.getElementById('c-dni').value=c.dni||'';
+  document.getElementById('c-pasaporte').value=c.pasaporte||'';
   document.getElementById('c-tel').value=c.tel||'';
+  document.getElementById('c-tel2').value=c.tel2||'';
   document.getElementById('c-email').value=c.email||'';
   document.getElementById('c-dom').value=c.domicilio||'';
+  document.getElementById('c-dom-legal').value=c.domicilioLegal||'';
+  document.getElementById('c-ocupacion').value=c.ocupacion||'';
+  document.getElementById('c-empresa').value=c.empresa||'';
+  document.getElementById('c-origen').value=c.origen||'';
   document.getElementById('c-notas').value=c.notas||'';
   document.getElementById('m-cli').classList.add('open');
+}
+
+function calcEdad(fnac){
+  if(!fnac)return null;
+  const hoy=new Date();const nac=new Date(fnac+'T00:00:00');
+  let edad=hoy.getFullYear()-nac.getFullYear();
+  const m=hoy.getMonth()-nac.getMonth();
+  if(m<0||(m===0&&hoy.getDate()<nac.getDate()))edad--;
+  return edad;
 }
 
 function saveCli(){
@@ -995,10 +1060,20 @@ function saveCli(){
   if(!nom){alert('Ingresá el nombre.');return;}
   const datos={
     nombre:nom,
+    fnac:document.getElementById('c-fnac').value,
+    nacionalidad:document.getElementById('c-nac').value,
+    estadoCivil:document.getElementById('c-ecivil').value,
+    genero:document.getElementById('c-genero').value,
     dni:document.getElementById('c-dni').value,
+    pasaporte:document.getElementById('c-pasaporte').value,
     tel:document.getElementById('c-tel').value,
+    tel2:document.getElementById('c-tel2').value,
     email:document.getElementById('c-email').value,
     domicilio:document.getElementById('c-dom').value,
+    domicilioLegal:document.getElementById('c-dom-legal').value,
+    ocupacion:document.getElementById('c-ocupacion').value,
+    empresa:document.getElementById('c-empresa').value,
+    origen:document.getElementById('c-origen').value,
     notas:document.getElementById('c-notas').value
   };
   if(cliEditId){
@@ -1011,7 +1086,7 @@ function saveCli(){
   save();
   closeM('m-cli');
   document.getElementById('m-cli-title').textContent='Nuevo Cliente';
-  clr(['c-nom','c-dni','c-tel','c-email','c-dom','c-notas']);
+  clr(['c-nom','c-dni','c-pasaporte','c-tel','c-tel2','c-email','c-dom','c-dom-legal','c-ocupacion','c-empresa','c-notas']);
   renderAll();
 }
 
@@ -1038,10 +1113,17 @@ function renderCli(){
   tb.innerHTML=rows.map(c=>{
     const causas=S.expedientes.filter(e=>e.clienteId===c.id).length;
     const pend=S.honorarios.filter(h=>h.clienteId===c.id&&h.saldo>0).reduce((s,h)=>s+h.saldo,0);
+    const edad=calcEdad(c.fnac);
+    const edadStr=edad!==null?`${edad} años`:'—';
+    const meta=[c.nacionalidad,c.estadoCivil,c.ocupacion].filter(Boolean).join(' · ');
     return`<tr>
-      <td data-label="Nombre"><div class="td-main">${c.nombre}</div><div class="td-sub">${c.domicilio||''}</div></td>
-      <td data-label="DNI/CUIT" style="color:var(--text-sub)">${c.dni||'—'}</td>
-      <td data-label="Teléfono" style="color:var(--text-sub)">${c.tel||'—'}</td>
+      <td data-label="Nombre">
+        <div class="td-main">${c.nombre}</div>
+        <div class="td-sub">${meta||c.domicilio||''}</div>
+      </td>
+      <td data-label="DNI/CUIT" style="color:var(--text-sub);font-size:13px">${c.dni||'—'}</td>
+      <td data-label="Edad / Nac." style="color:var(--text-sub);font-size:13px">${edadStr}${c.fnac?'<div style="font-size:11px;color:var(--text-dim)">'+fmt(c.fnac)+'</div>':''}</td>
+      <td data-label="Teléfono" style="color:var(--text-sub);font-size:13px">${c.tel||'—'}${c.tel2?'<div style="font-size:11px;color:var(--text-dim)">'+c.tel2+'</div>':''}</td>
       <td data-label="Email" style="font-size:12px;color:var(--text-sub)">${c.email||'—'}</td>
       <td data-label="Causas">
         <span class="tag ${causas>0?'tag-active':'tag-closed'}">${causas} causa${causas!==1?'s':''}</span>
