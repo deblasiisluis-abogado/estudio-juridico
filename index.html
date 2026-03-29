@@ -414,7 +414,7 @@ textarea{resize:vertical;min-height:75px;}
 <div class="page" id="page-actos">
   <div class="ph">
     <div><div class="ph-title">Trabajos Extrajudiciales</div><div class="ph-sub">Trabajos extrajudiciales y asesoramiento</div></div>
-    <button class="btn btn-gold" onclick="actoEditId=null;document.getElementById('m-acto-title').textContent='Nuevo Trabajo Extrajudicial';clr(['a-titulo','a-desc','a-notas']);openM('m-acto')">＋ Nuevo acto</button>
+    <button class="btn btn-gold" onclick="actoEditId=null;document.getElementById('m-acto-title').textContent='Nuevo Trabajo Extrajudicial';clr(['a-titulo','a-honorario','a-notas']);openM('m-acto')">＋ Nuevo acto</button>
   </div>
   <div class="tcard">
     <div class="tcard-header">
@@ -857,7 +857,14 @@ function toggleSB(){document.getElementById('sidebar').classList.toggle('open');
 function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('open');}
 
 // ── MODAL ──
-function openM(id){populateSels();document.getElementById(id).classList.add('open');const t=new Date().toISOString().split('T')[0];document.querySelectorAll('#'+id+' input[type=date]').forEach(i=>{if(!i.value)i.value=t;});}
+function openM(id){
+  try{populateSels();}catch(e){}
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.add('open');
+  const t=new Date().toISOString().split('T')[0];
+  el.querySelectorAll('input[type=date]').forEach(i=>{if(!i.value)i.value=t;});
+}
 function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
@@ -873,7 +880,7 @@ function fmt(f){if(!f)return'—';const[y,m,d]=f.split('-');return`${d}/${m}/${y
 function days(f){if(!f)return 9999;const h=new Date();h.setHours(0,0,0,0);return Math.ceil((new Date(f+'T00:00:00')-h)/864e5);}
 function $m(n){return'$'+Number(n||0).toLocaleString('es-AR');}
 function ym(f){return f?f.slice(0,7):'';}
-function clr(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+function clr(ids){ids.forEach(id=>{try{const el=document.getElementById(id);if(el){el.value='';if(el.tagName==='SELECT')el.selectedIndex=0;}}catch(e){}});}
 
 // ── EXPEDIENTES ──
 // ── EXPEDIENTES ──
@@ -1405,6 +1412,7 @@ function renderFin(){
   const pendJudicial=S.honorarios.reduce((s,h)=>s+h.saldo,0);
 
   // ── EXTRAJUDICIAL ──
+  if(!S.actos) S.actos=[];
   const actosMes=S.actos.filter(a=>ym(a.fecha)===mes);
   const cobradoExt=actosMes.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
   const facturadoExt=actosMes.filter(a=>a.cobro!=='Sin honorario').reduce((s,a)=>s+(a.honorario||0),0);
@@ -1418,16 +1426,17 @@ function renderFin(){
   const totalGasto=gMes.reduce((s,g)=>s+g.monto,0);
   const balance=totalCobrado-totalGasto;
 
-  document.getElementById('f-ingreso').textContent=$m(cobradoJudicial);
-  document.getElementById('f-ingreso-ext').textContent=$m(cobradoExt);
-  document.getElementById('f-ingreso-total').textContent=$m(totalCobrado);
-  document.getElementById('f-gasto').textContent=$m(totalGasto);
-  document.getElementById('f-balance').textContent=$m(balance);
-  document.getElementById('f-pend').textContent=$m(totalPend);
-  document.getElementById('f-total').textContent=$m(facturadoJudicial);
-  document.getElementById('f-total-ext').textContent=$m(facturadoExt);
-  document.getElementById('f-total-global').textContent=$m(totalFacturado);
-  document.getElementById('f-bal-card').className='fin-card '+(balance>=0?'bal-pos':'bal-neg');
+  const _set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val;};
+  _set('f-ingreso',$m(cobradoJudicial));
+  _set('f-ingreso-ext',$m(cobradoExt));
+  _set('f-ingreso-total',$m(totalCobrado));
+  _set('f-gasto',$m(totalGasto));
+  _set('f-balance',$m(balance));
+  _set('f-pend',$m(totalPend));
+  _set('f-total',$m(facturadoJudicial));
+  _set('f-total-ext',$m(facturadoExt));
+  _set('f-total-global',$m(totalFacturado));
+  const _bc=document.getElementById('f-bal-card');if(_bc)_bc.className='fin-card '+(balance>=0?'bal-pos':'bal-neg');
 
   // Tabla pendientes por cliente
   renderPendTable();
@@ -1576,8 +1585,7 @@ function renderDash(){
   document.getElementById('ds-venc').textContent=urgentes;
   document.getElementById('ds-ingreso').textContent=$m(cobMes);
   document.getElementById('ds-pend').textContent=$m(totPend);
-  document.getElementById('ds-actos').textContent=S.actos.filter(a=>a.estado==='En proceso').length;
-  document.getElementById('b-exp').textContent=activos;
+  _d('b-exp',activos);
   document.getElementById('b-venc').textContent=urgentes;
 
   const prox=[...S.vencimientos].filter(v=>!v.cumplido&&days(v.fecha)>=0).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,5);
@@ -1721,6 +1729,7 @@ function exportBalance(){
   const iMes=S.honorarios.filter(h=>h.fecha&&h.fecha.startsWith(mes));
   const pagosMes=S.pagos.filter(p=>p.fecha&&p.fecha.startsWith(mes));
   const gMes=S.gastos.filter(g=>g.fecha&&g.fecha.startsWith(mes));
+  if(!S.actos) S.actos=[];
   const actosMesExp=S.actos.filter(a=>a.fecha&&a.fecha.startsWith(mes));
   const cobradoJud=pagosMes.reduce((s,p)=>s+p.monto,0);
   const cobradoExtExp=actosMesExp.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
@@ -1837,6 +1846,7 @@ function exportBalanceOLD_UNUSED(){
   const iMes=S.honorarios.filter(h=>h.fecha&&h.fecha.startsWith(mes));
   const pagosMes=S.pagos.filter(p=>p.fecha&&p.fecha.startsWith(mes));
   const gMes=S.gastos.filter(g=>g.fecha&&g.fecha.startsWith(mes));
+  if(!S.actos) S.actos=[];
   const actosMesExp=S.actos.filter(a=>a.fecha&&a.fecha.startsWith(mes));
   const cobradoJud=pagosMes.reduce((s,p)=>s+p.monto,0);
   const cobradoExtExp=actosMesExp.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
@@ -2130,6 +2140,7 @@ function delActoDoc(actoId,docId){
 }
 
 function renderActos(){
+  if(!S.actos) S.actos=[];
   const q=(document.getElementById('s-acto')?.value||'').toLowerCase();
   const rows=S.actos.filter(a=>
     (a.titulo||'').toLowerCase().includes(q)||
@@ -2187,7 +2198,14 @@ function renderActos(){
 }
 
 // ── RENDER ALL ──
-function renderAll(){renderDash();renderExp();renderCli();renderVenc();renderActos();updateAgendaBadges();}
+function renderAll(){
+  try{renderDash();}catch(e){console.error('renderDash:',e);}
+  try{renderExp();}catch(e){console.error('renderExp:',e);}
+  try{renderCli();}catch(e){console.error('renderCli:',e);}
+  try{renderVenc();}catch(e){console.error('renderVenc:',e);}
+  try{renderActos();}catch(e){console.error('renderActos:',e);}
+  try{updateAgendaBadges();}catch(e){}
+}
 
 // ── INIT ──
 const _n=new Date();
