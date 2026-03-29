@@ -609,23 +609,70 @@ textarea{resize:vertical;min-height:75px;}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ── SUPABASE ──
+const SUPA_URL = 'https://ggcomxofltwuuobamolx.supabase.co';
+const SUPA_KEY = 'sb_publishable_knPq6RaUpDgENC6FVV94eQ_dnOzHwpp';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+const DOC_ID = 'estudio-deblassiis'; // ID único del documento en la base de datos
+
 // ── STATE ──
 let S={expedientes:[],clientes:[],vencimientos:[],honorarios:[],pagos:[],gastos:[]};
-function load(){
-  const d=localStorage.getItem('ej4');
-  if(d){S=JSON.parse(d);}
-  else {
-    // migrate old data if exists
-    const old=localStorage.getItem('ej3');
-    if(old){const o=JSON.parse(old);S.expedientes=o.expedientes||[];S.clientes=o.clientes||[];S.vencimientos=o.vencimientos||[];S.gastos=o.gastos||[];
-      // convert old ingresos to honorarios
-      if(o.ingresos){o.ingresos.forEach(i=>{const h={id:i.id,fecha:i.fecha,clienteId:i.clienteId,expId:i.expId,concepto:i.concepto,monto:i.monto,saldo:i.estado==='Cobrado'?0:i.monto};S.honorarios.push(h);if(i.estado==='Cobrado')S.pagos.push({id:uid(),fecha:i.fecha,clienteId:i.clienteId,honorarioId:i.id,monto:i.monto,notas:'Migrado'});});}
+let _saveTimer=null;
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// Mostrar indicador de sincronización
+function showSync(msg,color){
+  let el=document.getElementById('sync-indicator');
+  if(!el){el=document.createElement('div');el.id='sync-indicator';el.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9999;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;font-family:Nunito,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.15);transition:opacity .4s';document.body.appendChild(el);}
+  el.textContent=msg;
+  el.style.background=color==='ok'?'#1e8a4a':color==='err'?'#c0392b':'#b8860b';
+  el.style.color='#fff';
+  el.style.opacity='1';
+  if(color==='ok') setTimeout(()=>{el.style.opacity='0';},2000);
+}
+
+// Cargar datos desde Supabase
+async function load(){
+  try {
+    showSync('⏳ Cargando datos...','sync');
+    const {data,error}=await supa.from('estudio_data').select('*').eq('doc_id',DOC_ID).single();
+    if(error&&error.code==='PGRST116'){
+      // No existe aún — crear registro vacío
+      await supa.from('estudio_data').insert({doc_id:DOC_ID,data:JSON.stringify(S)});
+      showSync('✓ Listo','ok');
+    } else if(error){
+      throw error;
+    } else if(data){
+      S=JSON.parse(data.data);
+      showSync('✓ Sincronizado','ok');
     }
+  } catch(e){
+    console.warn('Supabase error, usando localStorage:',e);
+    const d=localStorage.getItem('ej4');
+    if(d) S=JSON.parse(d);
+    showSync('⚠ Sin conexión — datos locales','err');
   }
 }
-function save(){localStorage.setItem('ej4',JSON.stringify(S));}
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// Guardar datos en Supabase (con debounce 800ms)
+function save(){
+  localStorage.setItem('ej4',JSON.stringify(S)); // backup local siempre
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(async()=>{
+    try{
+      showSync('💾 Guardando...','sync');
+      const {error}=await supa.from('estudio_data').upsert({doc_id:DOC_ID,data:JSON.stringify(S),updated_at:new Date().toISOString()});
+      if(error) throw error;
+      showSync('✓ Guardado','ok');
+    } catch(e){
+      console.warn('Error guardando:',e);
+      showSync('⚠ Error al guardar','err');
+    }
+  },800);
+}
 
 // ── NAV ──
 function goTo(id,el){
@@ -1591,12 +1638,15 @@ function exportBalanceOLD_UNUSED(){
 function renderAll(){renderDash();renderExp();renderCli();renderVenc();updateAgendaBadges();}
 
 // ── INIT ──
-load();
 const _n=new Date();
 const _ds=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const _ms=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 document.getElementById('hoy-label').textContent=`${_ds[_n.getDay()]}, ${_n.getDate()} de ${_ms[_n.getMonth()]} de ${_n.getFullYear()}`;
-renderAll();
+
+// Cargar desde Supabase y luego renderizar
+load().then(()=>{
+  renderAll();
+});
 </script>
 
 <!-- Modal Documentos -->
