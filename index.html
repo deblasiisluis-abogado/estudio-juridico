@@ -434,7 +434,8 @@ textarea{resize:vertical;min-height:75px;}
     <div><div class="ph-title">Finanzas</div><div class="ph-sub">Honorarios, pagos, gastos y balance mensual</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-gold" onclick="openM('m-honorario')">＋ Honorario</button>
-      <button class="btn btn-ghost" onclick="openM('m-pago')">💳 Registrar pago</button>
+      <button class="btn btn-ghost" onclick="openM('m-pago')">💳 Pago judicial</button>
+      <button class="btn btn-ghost" onclick="openM('m-pago-ext')">📝 Pago extrajudicial</button>
       <button class="btn btn-ghost" onclick="openM('m-gasto')">＋ Gasto</button>
       <button class="btn btn-ghost" onclick="exportBalance()" style="border-color:var(--blue);color:var(--blue)">📊 Exportar Excel</button>
     </div>
@@ -505,8 +506,27 @@ textarea{resize:vertical;min-height:75px;}
   <div class="tcard">
     <div class="tcard-header"><div class="tcard-title">📝 Trabajos Extrajudiciales del período</div></div>
     <div style="overflow-x:auto">
-      <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Descripción</th><th>Honorario</th><th>Estado cobro</th></tr></thead>
+      <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Descripción</th><th>Facturado</th><th>Pagado</th><th>Saldo</th></tr></thead>
       <tbody id="t-actos-fin"></tbody></table>
+    </div>
+  </div>
+
+  <!-- Pagos extrajudiciales recibidos -->
+  <div class="tcard">
+    <div class="tcard-header"><div class="tcard-title">✅ Pagos recibidos — Extrajudicial</div></div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Trabajo</th><th>Medio de pago</th><th>Referencia</th><th>Monto</th><th></th></tr></thead>
+      <tbody id="t-pagos-ext"></tbody></table>
+    </div>
+  </div>
+
+  <!-- Pendientes extrajudiciales por cliente -->
+  <div class="tcard">
+    <div class="tcard-header"><div class="tcard-title">💳 Trabajos extrajudiciales pendientes de cobro</div></div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>Cliente</th><th>Trabajo</th><th>Facturado</th><th>Pagado</th><th>Saldo pendiente</th><th></th></tr></thead>
+      <tbody id="t-pend-ext"></tbody>
+    </table>
     </div>
   </div>
 </div>
@@ -787,7 +807,7 @@ async function checkSession(){
 const DOC_ID = 'estudio-deblassiis'; // ID único del documento en la base de datos
 
 // ── STATE ──
-let S={expedientes:[],clientes:[],vencimientos:[],honorarios:[],pagos:[],gastos:[],actos:[]};
+let S={expedientes:[],clientes:[],vencimientos:[],honorarios:[],pagos:[],gastos:[],actos:[],pagosExt:[]};
 let _saveTimer=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
@@ -869,7 +889,7 @@ function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 function populateSels(){
-  ['e-cli','h-cli','p-cli','a-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';S.clientes.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
+  ['e-cli','h-cli','p-cli','a-cli','pe-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';S.clientes.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
   ['v-exp','h-exp','g-exp'].forEach(id=>{const s=document.getElementById(id);if(!s)return;s.innerHTML='<option value="">Sin expediente</option>';S.expedientes.forEach(e=>s.innerHTML+=`<option value="${e.id}">${e.nro} – ${cNom(e.clienteId)}</option>`);});
 }
 
@@ -1491,17 +1511,66 @@ function renderFin(){
   const ta=document.getElementById('t-actos-fin');
   if(ta){
     ta.innerHTML=!actosMes.length
-      ?`<tr><td colspan="6"><div class="empty"><div class="empty-icon">📝</div>Sin trabajos extrajudiciales este período.</div></td></tr>`
+      ?`<tr><td colspan="7"><div class="empty"><div class="empty-icon">📝</div>Sin trabajos extrajudiciales este período.</div></td></tr>`
       :[...actosMes].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>{
-        const cobroColor=a.cobro==='Cobrado'?'var(--green)':a.cobro==='Pendiente'?'var(--orange)':'var(--text-dim)';
-        const cobroTag=a.cobro==='Cobrado'?'tag-active':a.cobro==='Pendiente'?'tag-pending':'tag-closed';
+        const saldo=a.saldo!==undefined?a.saldo:a.honorario;
+        const pagado=(a.honorario||0)-saldo;
+        const saldoColor=saldo<=0?'var(--green)':saldo<a.honorario?'var(--orange)':'var(--red)';
+        const saldoLabel=saldo<=0?'✅ Saldo 0':$m(saldo)+' pend.';
         return`<tr>
           <td data-label="Fecha" style="font-size:12px">${fmt(a.fecha)}</td>
           <td data-label="Cliente" style="font-size:12px">${cNom(a.clienteId)}</td>
           <td data-label="Tipo"><span class="tag tag-civil" style="font-size:11px">${a.tipo}</span></td>
           <td data-label="Descripción" style="font-size:12px">${a.titulo||'—'}</td>
-          <td data-label="Honorario"><b style="color:var(--gold)">${a.honorario>0?$m(a.honorario):'—'}</b></td>
-          <td data-label="Estado cobro"><span class="tag ${cobroTag}" style="font-size:11px">${a.cobro}</span></td>
+          <td data-label="Facturado"><b style="color:var(--gold)">${a.honorario>0?$m(a.honorario):'—'}</b></td>
+          <td data-label="Pagado"><b style="color:var(--green)">${pagado>0?$m(pagado):'—'}</b></td>
+          <td data-label="Saldo"><b style="color:${saldoColor};font-size:12px">${a.honorario>0?saldoLabel:'—'}</b></td>
+        </tr>`;
+      }).join('');
+  }
+
+  // Tabla pagos extrajudiciales del período
+  const tpe=document.getElementById('t-pagos-ext');
+  if(tpe){
+    tpe.innerHTML=!pagosExtMes.length
+      ?`<tr><td colspan="7"><div class="empty"><div class="empty-icon">✅</div>Sin pagos extrajudiciales este período.</div></td></tr>`
+      :[...pagosExtMes].reverse().map(p=>{
+        const acto=S.actos.find(a=>a.id===p.actoId);
+        return`<tr>
+          <td data-label="Fecha" style="font-size:12px">${fmt(p.fecha)}</td>
+          <td data-label="Cliente" style="font-size:12px">${cNom(p.clienteId)}</td>
+          <td data-label="Trabajo" style="font-size:12px">${acto?acto.titulo||acto.tipo:'—'}</td>
+          <td data-label="Medio de pago"><span class="tag tag-active" style="font-size:11px">${p.medio||'—'}</span></td>
+          <td data-label="Referencia" style="font-size:12px;color:var(--text-sub)">${p.ref||'—'}</td>
+          <td data-label="Monto"><b style="color:var(--green)">${$m(p.monto)}</b></td>
+          <td data-label=""><button class="btn btn-danger btn-xs" onclick="delPagoExt('${p.id}')">✕</button></td>
+        </tr>`;
+      }).join('');
+  }
+
+  // Pendientes extrajudiciales por cliente
+  const tPendExt=document.getElementById('t-pend-ext');
+  if(tPendExt){
+    const mapExt={};
+    S.actos.filter(a=>a.honorario>0&&(a.saldo!==undefined?a.saldo:a.honorario)>0).forEach(a=>{
+      const k=a.clienteId||'x';
+      if(!mapExt[k])mapExt[k]={nombre:a.clienteId?cNom(a.clienteId):'Sin cliente',items:[],total:0,saldo:0};
+      const saldo=a.saldo!==undefined?a.saldo:a.honorario;
+      mapExt[k].items.push(a);mapExt[k].total+=a.honorario;mapExt[k].saldo+=saldo;
+    });
+    const extEntries=Object.values(mapExt).sort((a,b)=>b.saldo-a.saldo);
+    tPendExt.innerHTML=!extEntries.length
+      ?`<tr><td colspan="6"><div class="empty"><div class="empty-icon">✅</div>Sin trabajos extrajudiciales pendientes</div></td></tr>`
+      :extEntries.map(e=>{
+        const pagado=e.total-e.saldo;
+        const pct=Math.round((pagado/e.total)*100);
+        return`<tr>
+          <td data-label="Cliente"><div class="td-main">${e.nombre}</div><div class="td-sub">${e.items.length} trabajo${e.items.length!==1?'s':''}</div></td>
+          <td data-label="Trabajo" style="font-size:12px;color:var(--text-sub)">${e.items.map(a=>a.titulo||a.tipo).join(', ')}</td>
+          <td data-label="Facturado" style="color:var(--gold);font-weight:600">${$m(e.total)}</td>
+          <td data-label="Pagado" style="color:var(--green);font-weight:600">${$m(pagado)}<span style="font-size:10px;color:var(--text-dim);margin-left:4px">(${pct}%)</span></td>
+          <td data-label="Saldo pendiente"><b style="color:var(--orange)">${$m(e.saldo)}</b></td>
+          <td data-label=""><button class="btn btn-gold btn-xs" onclick="abrirPagoExtCli('${e.items[0].clienteId}')">Pagar</button></td>
         </tr>`;
       }).join('');
   }
@@ -1732,11 +1801,13 @@ function exportBalance(){
   if(!S.actos) S.actos=[];
   const actosMesExp=S.actos.filter(a=>a.fecha&&a.fecha.startsWith(mes));
   const cobradoJud=pagosMes.reduce((s,p)=>s+p.monto,0);
-  const cobradoExtExp=actosMesExp.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
+  if(!S.pagosExt)S.pagosExt=[];
+  const pagosExtExp=S.pagosExt.filter(p=>p.fecha&&p.fecha.startsWith(mes));
+  const cobradoExtExp=pagosExtExp.reduce((s,p)=>s+p.monto,0);
   const cobrado=cobradoJud+cobradoExtExp;
   const totalGasto=gMes.reduce((s,g)=>s+g.monto,0);
   const balance=cobrado-totalGasto;
-  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0)+S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
+  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0)+(S.actos||[]).filter(a=>a.honorario>0&&(a.saldo!==undefined?a.saldo:a.honorario)>0).reduce((s,a)=>s+(a.saldo!==undefined?a.saldo:a.honorario),0);
 
   const fmt2=(f)=>{if(!f)return'';const[yy,mm,dd]=f.split('-');return`${dd}/${mm}/${yy}`;};
 
@@ -1810,6 +1881,12 @@ function exportBalance(){
     extData.push([]);
     extData.push(['','','','TOTAL FACTURADO EXT.',actosMesExp.filter(a=>a.cobro!=='Sin honorario').reduce((s,a)=>s+(a.honorario||0),0),'','']);
     extData.push(['','','','TOTAL COBRADO EXT.',cobradoExtExp,'','']);
+    if(pagosExtExp && pagosExtExp.length){
+      extData.push([]);
+      extData.push(['PAGOS EXTRAJUDICIALES RECIBIDOS','','','','','','']);
+      extData.push(['Fecha','Cliente','Trabajo','Medio de pago','Referencia','Monto ($)','']);
+      pagosExtExp.forEach(p=>{const a=S.actos.find(x=>x.id===p.actoId);extData.push([fmt2(p.fecha),cNom(p.clienteId),a?a.titulo||a.tipo:'—',p.medio||'',p.ref||'',p.monto,'']);});
+    }
     const ws5e=XLSX.utils.aoa_to_sheet(extData);
     ws5e['!cols']=[{wch:14},{wch:28},{wch:22},{wch:35},{wch:18},{wch:18},{wch:30}];
     XLSX.utils.book_append_sheet(wb,ws5e,'Trabajos Extrajudiciales');
@@ -1849,11 +1926,13 @@ function exportBalanceOLD_UNUSED(){
   if(!S.actos) S.actos=[];
   const actosMesExp=S.actos.filter(a=>a.fecha&&a.fecha.startsWith(mes));
   const cobradoJud=pagosMes.reduce((s,p)=>s+p.monto,0);
-  const cobradoExtExp=actosMesExp.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
+  if(!S.pagosExt)S.pagosExt=[];
+  const pagosExtExp=S.pagosExt.filter(p=>p.fecha&&p.fecha.startsWith(mes));
+  const cobradoExtExp=pagosExtExp.reduce((s,p)=>s+p.monto,0);
   const cobrado=cobradoJud+cobradoExtExp;
   const totalGasto=gMes.reduce((s,g)=>s+g.monto,0);
   const balance=cobrado-totalGasto;
-  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0)+S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
+  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0)+(S.actos||[]).filter(a=>a.honorario>0&&(a.saldo!==undefined?a.saldo:a.honorario)>0).reduce((s,a)=>s+(a.saldo!==undefined?a.saldo:a.honorario),0);
 
   const fmt2=(f)=>{if(!f)return'—';const[yy,mm,dd]=f.split('-');return`${dd}/${mm}/${yy}`;};
   const money2=(n)=>'$'+Number(n||0).toLocaleString('es-AR');
@@ -2042,6 +2121,10 @@ function saveActo(){
   const titulo=document.getElementById('a-titulo').value.trim();
   if(!titulo){alert('Ingresá un título.');return;}
   const hon=parseFloat(document.getElementById('a-honorario').value)||0;
+  const existing=actoEditId?S.actos.find(x=>x.id===actoEditId):null;
+  // Recalculate saldo: honorario minus all pagosExt for this acto
+  const pagadoExt=actoEditId?S.pagosExt.filter(p=>p.actoId===actoEditId).reduce((s,p)=>s+p.monto,0):0;
+  const nuevoSaldo=Math.max(0,hon-pagadoExt);
   const datos={
     titulo,
     fecha:document.getElementById('a-fecha').value,
@@ -2049,15 +2132,16 @@ function saveActo(){
     tipo:document.getElementById('a-tipo').value,
     estado:document.getElementById('a-estado').value,
     honorario:hon,
-    cobro:document.getElementById('a-cobro').value,
+    saldo:nuevoSaldo,
     notas:document.getElementById('a-notas').value,
-    docs:actoEditId?(S.actos.find(x=>x.id===actoEditId)?.docs||[]):[]
+    docs:existing?existing.docs||[]:[]
   };
   if(actoEditId){
     const idx=S.actos.findIndex(x=>x.id===actoEditId);
     if(idx>=0) S.actos[idx]={...S.actos[idx],...datos};
     actoEditId=null;
   } else {
+    datos.saldo=hon; // nuevo acto: saldo = monto total
     S.actos.push({id:uid(),...datos});
   }
   save();
@@ -2197,6 +2281,78 @@ function renderActos(){
   rows.forEach(a=>renderActoDocList(a.id));
 }
 
+
+// ── PAGOS EXTRAJUDICIALES ──
+function populateActosPendientes(){
+  const cliId=document.getElementById('pe-cli')?.value;
+  const sel=document.getElementById('pe-acto');
+  if(!sel)return;
+  sel.innerHTML='<option value="">Seleccionar trabajo pendiente...</option>';
+  document.getElementById('pe-saldo-info').textContent='';
+  if(!cliId)return;
+  const pendientes=(S.actos||[]).filter(a=>a.clienteId===cliId&&a.honorario>0&&(a.saldo===undefined?a.honorario:a.saldo)>0);
+  if(!pendientes.length){
+    sel.innerHTML='<option value="">Sin trabajos pendientes de cobro</option>';
+    return;
+  }
+  pendientes.forEach(a=>{
+    const saldo=a.saldo!==undefined?a.saldo:a.honorario;
+    sel.innerHTML+=`<option value="${a.id}">${a.titulo||a.tipo} — Saldo: $${saldo.toLocaleString('es-AR')}</option>`;
+  });
+}
+
+function savePagoExt(){
+  const actoId=document.getElementById('pe-acto').value;
+  const monto=parseFloat(document.getElementById('pe-monto').value);
+  const cliId=document.getElementById('pe-cli').value;
+  if(!cliId){alert('Seleccioná un cliente.');return;}
+  if(!actoId){alert('Seleccioná el trabajo a pagar.');return;}
+  if(!monto||monto<=0){alert('Ingresá un monto válido.');return;}
+  const acto=S.actos.find(a=>a.id===actoId);
+  if(!acto){alert('Trabajo no encontrado.');return;}
+  const saldoActual=acto.saldo!==undefined?acto.saldo:acto.honorario;
+  if(monto>saldoActual+0.01){alert(`El pago ($${monto.toLocaleString('es-AR')}) supera el saldo pendiente ($${saldoActual.toLocaleString('es-AR')}). Ingresá un monto igual o menor.`);return;}
+  // Descontar saldo
+  acto.saldo=Math.max(0,saldoActual-monto);
+  // Registrar pago
+  if(!S.pagosExt)S.pagosExt=[];
+  S.pagosExt.push({
+    id:uid(),
+    fecha:document.getElementById('pe-fecha').value,
+    clienteId:cliId,
+    actoId,
+    monto,
+    medio:document.getElementById('pe-medio').value,
+    ref:document.getElementById('pe-ref').value,
+    notas:document.getElementById('pe-notas').value
+  });
+  save();closeM('m-pago-ext');
+  clr(['pe-monto','pe-ref','pe-notas']);
+  document.getElementById('pe-acto').innerHTML='<option value="">Seleccionar trabajo pendiente...</option>';
+  document.getElementById('pe-saldo-info').textContent='';
+  renderAll();
+  if(document.getElementById('page-finanzas').classList.contains('active'))renderFin();
+}
+
+function delPagoExt(id){
+  if(!confirm('¿Eliminar este pago? El saldo del trabajo se restaurará.'))return;
+  const pago=S.pagosExt.find(p=>p.id===id);
+  if(pago){
+    const acto=S.actos.find(a=>a.id===pago.actoId);
+    if(acto) acto.saldo=Math.min(acto.honorario,(acto.saldo||0)+pago.monto);
+  }
+  S.pagosExt=S.pagosExt.filter(p=>p.id!==id);
+  save();renderAll();
+  if(document.getElementById('page-finanzas').classList.contains('active'))renderFin();
+}
+
+function abrirPagoExtCli(cliId){
+  openM('m-pago-ext');
+  setTimeout(()=>{
+    document.getElementById('pe-cli').value=cliId;
+    populateActosPendientes();
+  },50);
+}
 // ── RENDER ALL ──
 function renderAll(){
   try{renderDash();}catch(e){console.error('renderDash:',e);}
@@ -2252,16 +2408,49 @@ checkSession();
       <div class="fg"><label>Honorario pactado ($)</label><input type="number" id="a-honorario" placeholder="0"></div>
       <div class="fg"><label>Estado de cobro</label>
         <select id="a-cobro">
-          <option value="Pendiente">⏳ Pendiente de cobro</option>
-          <option value="Cobrado">✅ Cobrado</option>
           <option value="Sin honorario">— Sin honorario</option>
+          <option value="Con honorario">💰 Con honorario</option>
         </select>
       </div>
+      <p style="font-size:11.5px;color:var(--text-sub);grid-column:1/-1;margin-top:-4px">💡 El honorario queda pendiente. Usá "💳 Pago extrajudicial" para registrar cobros y descontarlos.</p>
       <div class="fg full"><label>Detalle / Notas</label><textarea id="a-notas" placeholder="Descripción detallada del acto, partes intervinientes, condiciones..."></textarea></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeM('m-acto');actoEditId=null">Cancelar</button>
       <button class="btn btn-gold" onclick="saveActo()">Guardar acto</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Pago Extrajudicial -->
+<div class="modal-wrap" id="m-pago-ext">
+  <div class="modal">
+    <div class="modal-title">Registrar Pago Extrajudicial</div>
+    <div class="form-grid">
+      <div class="fg"><label>Fecha del pago</label><input type="date" id="pe-fecha"></div>
+      <div class="fg"><label>Cliente</label><select id="pe-cli" onchange="populateActosPendientes()"><option value="">Seleccionar...</option></select></div>
+      <div class="fg full"><label>Trabajo a pagar</label><select id="pe-acto"><option value="">Seleccionar trabajo pendiente...</option></select></div>
+      <div class="fg"><label>Monto pagado ($)</label><input type="number" id="pe-monto" placeholder="0"></div>
+      <div class="fg"><label>Medio de pago</label>
+        <select id="pe-medio">
+          <option value="Transferencia bancaria">🏦 Transferencia bancaria</option>
+          <option value="Efectivo">💵 Efectivo</option>
+          <option value="Cheque">📝 Cheque</option>
+          <option value="Depósito bancario">🏧 Depósito bancario</option>
+          <option value="Tarjeta de crédito">💳 Tarjeta de crédito</option>
+          <option value="Tarjeta de débito">💳 Tarjeta de débito</option>
+          <option value="MercadoPago">📱 MercadoPago</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="fg full"><label>Nº Comprobante / Referencia (opcional)</label><input id="pe-ref" placeholder="Ej: nº transferencia, recibo..."></div>
+      <div class="fg full"><label>Notas (opcional)</label><input id="pe-notas" placeholder="Observaciones..."></div>
+    </div>
+    <div id="pe-saldo-info" style="margin-top:10px;font-size:12px;color:var(--text-sub)"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeM('m-pago-ext')">Cancelar</button>
+      <button class="btn btn-gold" onclick="savePagoExt()">Registrar pago</button>
     </div>
   </div>
 </div>
