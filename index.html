@@ -306,6 +306,13 @@ textarea{resize:vertical;min-height:75px;}
       <span id="b-agenda-prox" class="badge" style="display:none;background:#b8860b">0</span>
     </div>
   </nav>
+  <div style="padding:0 10px;margin-top:8px">
+    <div style="border-top:1px solid var(--border);padding-top:10px">
+      <div class="logout-btn" style="color:var(--blue)" onclick="backupData()">💾 Hacer backup</div>
+      <label class="logout-btn" style="color:var(--text-sub);cursor:pointer" for="restore-input">📂 Restaurar backup</label>
+      <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreData(event)">
+    </div>
+  </div>
   <div class="logout-btn" onclick="doLogout()">🔒 Cerrar sesión</div>
 </aside>
 
@@ -1762,6 +1769,55 @@ function exportBalanceOLD_UNUSED(){
   const win=window.open('','_blank');
   win.document.write(html);
   win.document.close();
+}
+
+
+// ── BACKUP & RESTORE ──
+function backupData(){
+  const fecha=new Date().toISOString().split('T')[0];
+  const backup={
+    version:'1.0',
+    fecha,
+    estudio:'Dr. Luis de Blasiis',
+    data:S
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`backup_estudio_${fecha}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showSync('✓ Backup descargado','ok');
+}
+
+function restoreData(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(!confirm('⚠ ATENCIÓN\n\nEsto va a reemplazar TODOS los datos actuales con los del backup.\n\n¿Está seguro?'))return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    try{
+      const backup=JSON.parse(e.target.result);
+      if(!backup.data) throw new Error('Archivo inválido');
+      S=backup.data;
+      // Asegurar arrays existen
+      S.expedientes=S.expedientes||[];
+      S.clientes=S.clientes||[];
+      S.vencimientos=S.vencimientos||[];
+      S.honorarios=S.honorarios||[];
+      S.pagos=S.pagos||[];
+      S.gastos=S.gastos||[];
+      save();
+      renderAll();
+      showSync('✓ Backup restaurado correctamente','ok');
+      alert(`✅ Backup restaurado correctamente.\nFecha del backup: ${backup.fecha||'desconocida'}\nEstudio: ${backup.estudio||'—'}`);
+    } catch(err){
+      alert('❌ Error al leer el archivo. Verificá que sea un backup válido del sistema.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
 }
 
 // ── RENDER ALL ──
