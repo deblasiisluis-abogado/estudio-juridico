@@ -582,7 +582,11 @@ textarea{resize:vertical;min-height:75px;}
     <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin-bottom:10px;font-weight:700">Datos personales</div>
     <div class="form-grid">
       <div class="fg full"><label>Nombre completo / Razón social</label><input id="c-nom" placeholder="Juan García"></div>
-      <div class="fg"><label>Fecha de nacimiento</label><input type="date" id="c-fnac"></div>
+      <div class="fg">
+        <label>Fecha de nacimiento</label>
+        <input type="date" id="c-fnac" oninput="actualizarEdad()">
+        <div id="c-edad-display" style="font-size:12px;color:var(--gold);font-weight:700;margin-top:4px;min-height:18px"></div>
+      </div>
       <div class="fg"><label>Nacionalidad</label>
         <select id="c-nac">
           <option value="">Seleccionar...</option>
@@ -1075,6 +1079,7 @@ function editCli(id){
   document.getElementById('m-cli-title').textContent='Editar Cliente';
   document.getElementById('c-nom').value=c.nombre||'';
   document.getElementById('c-fnac').value=c.fnac||'';
+  setTimeout(actualizarEdad,50);
   document.getElementById('c-nac').value=c.nacionalidad||'';
   document.getElementById('c-ecivil').value=c.estadoCivil||'';
   document.getElementById('c-genero').value=c.genero||'';
@@ -1099,6 +1104,23 @@ function calcEdad(fnac){
   const m=hoy.getMonth()-nac.getMonth();
   if(m<0||(m===0&&hoy.getDate()<nac.getDate()))edad--;
   return edad;
+}
+
+function actualizarEdad(){
+  const fnac=document.getElementById('c-fnac')?.value;
+  const el=document.getElementById('c-edad-display');
+  if(!el)return;
+  if(!fnac){el.textContent='';return;}
+  const edad=calcEdad(fnac);
+  if(edad===null||edad<0){el.textContent='';return;}
+  // Próximo cumpleaños
+  const hoy=new Date();
+  const nac=new Date(fnac+'T00:00:00');
+  const proxCump=new Date(hoy.getFullYear(),nac.getMonth(),nac.getDate());
+  if(proxCump<hoy) proxCump.setFullYear(hoy.getFullYear()+1);
+  const diasCump=Math.ceil((proxCump-hoy)/864e5);
+  const cumpStr=diasCump===0?' 🎂 ¡Hoy es su cumpleaños!':diasCump<=30?` · Cumple en ${diasCump}d`:'';
+  el.textContent=`${edad} años${cumpStr}`;
 }
 
 function saveCli(){
