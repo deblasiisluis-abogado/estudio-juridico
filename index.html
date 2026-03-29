@@ -299,6 +299,7 @@ textarea{resize:vertical;min-height:75px;}
     <div class="nav-item" onclick="goTo('expedientes',this)"><span class="nav-icon">📁</span>Expedientes<span class="badge" id="b-exp">0</span></div>
     <div class="nav-item" onclick="goTo('clientes',this)"><span class="nav-icon">👤</span>Clientes</div>
     <div class="nav-item" onclick="goTo('vencimientos',this)"><span class="nav-icon">⏰</span>Vencimientos<span class="badge" id="b-venc">0</span></div>
+    <div class="nav-item" onclick="goTo('actos',this)"><span class="nav-icon">📝</span>Trabajos Extrajudiciales</div>
     <div class="nav-label">Finanzas</div>
     <div class="nav-item" onclick="goTo('finanzas',this)"><span class="nav-icon">💰</span>Finanzas</div>
     <div class="nav-item" onclick="goTo('agenda',this)"><span class="nav-icon">📅</span>Agenda
@@ -409,6 +410,24 @@ textarea{resize:vertical;min-height:75px;}
   </div>
 </div>
 
+<!-- ACTOS JURÍDICOS -->
+<div class="page" id="page-actos">
+  <div class="ph">
+    <div><div class="ph-title">Trabajos Extrajudiciales</div><div class="ph-sub">Trabajos extrajudiciales y asesoramiento</div></div>
+    <button class="btn btn-gold" onclick="actoEditId=null;document.getElementById('m-acto-title').textContent='Nuevo Trabajo Extrajudicial';clr(['a-titulo','a-desc','a-notas']);openM('m-acto')">＋ Nuevo acto</button>
+  </div>
+  <div class="tcard">
+    <div class="tcard-header">
+      <div class="tcard-title" id="acto-count">0 actos</div>
+      <div class="search-wrap">🔍<input type="text" placeholder="Buscar..." id="s-acto" oninput="renderActos()"></div>
+    </div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Descripción</th><th>Estado</th><th>Honorario</th><th>Docs</th><th></th></tr></thead>
+      <tbody id="t-actos"></tbody></table>
+    </div>
+  </div>
+</div>
+
 <!-- FINANZAS -->
 <div class="page" id="page-finanzas">
   <div class="ph">
@@ -428,13 +447,19 @@ textarea{resize:vertical;min-height:75px;}
 
   <!-- Balance cards -->
   <div class="fin-grid">
-    <div class="fin-card ingreso"><div class="fin-label">Cobrado (pagos recibidos)</div><div class="fin-val" id="f-ingreso">$0</div></div>
-    <div class="fin-card gasto"><div class="fin-label">Gastos del período</div><div class="fin-val" id="f-gasto">$0</div></div>
-    <div class="fin-card bal-pos" id="f-bal-card"><div class="fin-label">Ganancia neta (balance)</div><div class="fin-val" id="f-balance">$0</div></div>
+    <div class="fin-card ingreso"><div class="fin-label">Cobrado — judicial</div><div class="fin-val" id="f-ingreso">$0</div></div>
+    <div class="fin-card ingreso" style="border-color:var(--blue)"><div class="fin-label">Cobrado — extrajudicial</div><div class="fin-val" style="color:var(--blue)" id="f-ingreso-ext">$0</div></div>
+    <div class="fin-card ingreso" style="opacity:.9"><div class="fin-label">Total cobrado</div><div class="fin-val" style="color:var(--green)" id="f-ingreso-total">$0</div></div>
   </div>
   <div class="fin-grid">
-    <div class="fin-card pendiente"><div class="fin-label">Total honorarios pendientes</div><div class="fin-val" id="f-pend">$0</div></div>
-    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Honorarios facturados (mes)</div><div class="fin-val" style="color:var(--text)" id="f-total">$0</div></div>
+    <div class="fin-card gasto"><div class="fin-label">Gastos del período</div><div class="fin-val" id="f-gasto">$0</div></div>
+    <div class="fin-card bal-pos" id="f-bal-card"><div class="fin-label">Ganancia neta (balance)</div><div class="fin-val" id="f-balance">$0</div></div>
+    <div class="fin-card pendiente"><div class="fin-label">Total pendiente de cobro</div><div class="fin-val" id="f-pend">$0</div></div>
+  </div>
+  <div class="fin-grid">
+    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Facturado judicial (mes)</div><div class="fin-val" style="color:var(--text)" id="f-total">$0</div></div>
+    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Facturado extrajudicial (mes)</div><div class="fin-val" style="color:var(--blue)" id="f-total-ext">$0</div></div>
+    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Total facturado (mes)</div><div class="fin-val" style="color:var(--gold)" id="f-total-global">$0</div></div>
   </div>
 
   <!-- Pendientes por cliente — TABLA DETALLADA -->
@@ -469,10 +494,19 @@ textarea{resize:vertical;min-height:75px;}
 
   <!-- Pagos recibidos -->
   <div class="tcard">
-    <div class="tcard-header"><div class="tcard-title">✅ Pagos recibidos</div></div>
+    <div class="tcard-header"><div class="tcard-title">✅ Pagos recibidos — Judicial</div></div>
     <div style="overflow-x:auto">
       <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Honorario</th><th>Medio de pago</th><th>Referencia</th><th>Monto</th><th></th></tr></thead>
       <tbody id="t-pagos"></tbody></table>
+    </div>
+  </div>
+
+  <!-- Trabajos Extrajudiciales del período -->
+  <div class="tcard">
+    <div class="tcard-header"><div class="tcard-title">📝 Trabajos Extrajudiciales del período</div></div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Descripción</th><th>Honorario</th><th>Estado cobro</th></tr></thead>
+      <tbody id="t-actos-fin"></tbody></table>
     </div>
   </div>
 </div>
@@ -749,7 +783,7 @@ async function checkSession(){
 const DOC_ID = 'estudio-deblassiis'; // ID único del documento en la base de datos
 
 // ── STATE ──
-let S={expedientes:[],clientes:[],vencimientos:[],honorarios:[],pagos:[],gastos:[]};
+let S={expedientes:[],clientes:[],vencimientos:[],honorarios:[],pagos:[],gastos:[],actos:[]};
 let _saveTimer=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
@@ -824,7 +858,7 @@ function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 function populateSels(){
-  ['e-cli','h-cli','p-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';S.clientes.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
+  ['e-cli','h-cli','p-cli','a-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';S.clientes.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
   ['v-exp','h-exp','g-exp'].forEach(id=>{const s=document.getElementById(id);if(!s)return;s.innerHTML='<option value="">Sin expediente</option>';S.expedientes.forEach(e=>s.innerHTML+=`<option value="${e.id}">${e.nro} – ${cNom(e.clienteId)}</option>`);});
 }
 
@@ -992,21 +1026,33 @@ function openAddDoc(expId){
 }
 
 function saveDoc(){
-  const expId=document.getElementById('d-expid').value;
+  const rawId=document.getElementById('d-expid').value;
   const nombre=document.getElementById('d-nombre').value.trim();
   const url=document.getElementById('d-url').value.trim();
   if(!nombre){alert('Ingresá el nombre del documento.');return;}
   if(!url){alert('Pegá el enlace del documento.');return;}
-  const e=S.expedientes.find(x=>x.id===expId);
-  if(!e)return;
-  if(!e.docs)e.docs=[];
-  e.docs.push({id:uid(),nombre,tipo:document.getElementById('d-tipo').value,fecha:document.getElementById('d-fecha').value,url});
-  save();closeM('m-doc');
-  renderDocList(expId);
-  renderExp();
-  // keep docs row open
-  const row=document.getElementById('docs-row-'+expId);
-  if(row)row.style.display='table-row';
+  const docObj={id:uid(),nombre,tipo:document.getElementById('d-tipo').value,fecha:document.getElementById('d-fecha').value,url};
+
+  if(rawId.startsWith('ACTO:')){
+    const actoId=rawId.replace('ACTO:','');
+    const a=S.actos.find(x=>x.id===actoId);
+    if(!a)return;
+    if(!a.docs)a.docs=[];
+    a.docs.push(docObj);
+    save();closeM('m-doc');
+    renderActoDocList(actoId);renderActos();
+    const row=document.getElementById('acto-docs-row-'+actoId);
+    if(row)row.style.display='table-row';
+  } else {
+    const e=S.expedientes.find(x=>x.id===rawId);
+    if(!e)return;
+    if(!e.docs)e.docs=[];
+    e.docs.push(docObj);
+    save();closeM('m-doc');
+    renderDocList(rawId);renderExp();
+    const row=document.getElementById('docs-row-'+rawId);
+    if(row)row.style.display='table-row';
+  }
 }
 
 function delDoc(expId,docId){
@@ -1320,7 +1366,7 @@ function saveGasto(){
 function renderFin(){
   const sel=document.getElementById('fin-mes');
   const months=new Set([new Date().toISOString().slice(0,7)]);
-  [...S.honorarios,...S.gastos,...S.pagos].forEach(x=>{if(x.fecha)months.add(ym(x.fecha));});
+  [...S.honorarios,...S.gastos,...S.pagos,...S.actos].forEach(x=>{if(x.fecha)months.add(ym(x.fecha));});
   const arr=[...months].sort().reverse();
   const cur=sel.value||arr[0];
   const mnames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1329,25 +1375,36 @@ function renderFin(){
   if([...sel.options].some(o=>o.value===cur))sel.value=cur;
   const mes=sel.value;
 
-  // Pagos recibidos en el período
+  // ── JUDICIAL ──
   const pagosMes=S.pagos.filter(p=>ym(p.fecha)===mes);
-  const cobradoMes=pagosMes.reduce((s,p)=>s+p.monto,0);
-  // Honorarios facturados en el período
+  const cobradoJudicial=pagosMes.reduce((s,p)=>s+p.monto,0);
   const honMes=S.honorarios.filter(h=>ym(h.fecha)===mes);
-  const facturadoMes=honMes.reduce((s,h)=>s+h.monto,0);
-  // Gastos del período
+  const facturadoJudicial=honMes.reduce((s,h)=>s+h.monto,0);
+  const pendJudicial=S.honorarios.reduce((s,h)=>s+h.saldo,0);
+
+  // ── EXTRAJUDICIAL ──
+  const actosMes=S.actos.filter(a=>ym(a.fecha)===mes);
+  const cobradoExt=actosMes.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
+  const facturadoExt=actosMes.filter(a=>a.cobro!=='Sin honorario').reduce((s,a)=>s+(a.honorario||0),0);
+  const pendExt=S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
+
+  // ── TOTALES ──
+  const totalCobrado=cobradoJudicial+cobradoExt;
+  const totalFacturado=facturadoJudicial+facturadoExt;
+  const totalPend=pendJudicial+pendExt;
   const gMes=S.gastos.filter(g=>ym(g.fecha)===mes);
   const totalGasto=gMes.reduce((s,g)=>s+g.monto,0);
-  // Balance = cobrado - gastos
-  const balance=cobradoMes-totalGasto;
-  // Total pendiente global
-  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0);
+  const balance=totalCobrado-totalGasto;
 
-  document.getElementById('f-ingreso').textContent=$m(cobradoMes);
+  document.getElementById('f-ingreso').textContent=$m(cobradoJudicial);
+  document.getElementById('f-ingreso-ext').textContent=$m(cobradoExt);
+  document.getElementById('f-ingreso-total').textContent=$m(totalCobrado);
   document.getElementById('f-gasto').textContent=$m(totalGasto);
   document.getElementById('f-balance').textContent=$m(balance);
-  document.getElementById('f-pend').textContent=$m(totPend);
-  document.getElementById('f-total').textContent=$m(facturadoMes);
+  document.getElementById('f-pend').textContent=$m(totalPend);
+  document.getElementById('f-total').textContent=$m(facturadoJudicial);
+  document.getElementById('f-total-ext').textContent=$m(facturadoExt);
+  document.getElementById('f-total-global').textContent=$m(totalFacturado);
   document.getElementById('f-bal-card').className='fin-card '+(balance>=0?'bal-pos':'bal-neg');
 
   // Tabla pendientes por cliente
@@ -1385,7 +1442,7 @@ function renderFin(){
   // Tabla pagos
   const tp=document.getElementById('t-pagos');
   tp.innerHTML=!pagosMes.length
-    ?`<tr><td colspan="5"><div class="empty"><div class="empty-icon">✅</div>Sin pagos registrados este período.</div></td></tr>`
+    ?`<tr><td colspan="7"><div class="empty"><div class="empty-icon">✅</div>Sin pagos registrados este período.</div></td></tr>`
     :[...pagosMes].reverse().map(p=>{
       const hon=S.honorarios.find(h=>h.id===p.honorarioId);
       return`<tr>
@@ -1398,6 +1455,25 @@ function renderFin(){
         <td data-label=""><button class="btn btn-danger btn-xs" onclick="delPago('${p.id}')">✕</button></td>
       </tr>`;
     }).join('');
+
+  // Tabla actos extrajudiciales del período
+  const ta=document.getElementById('t-actos-fin');
+  if(ta){
+    ta.innerHTML=!actosMes.length
+      ?`<tr><td colspan="6"><div class="empty"><div class="empty-icon">📝</div>Sin trabajos extrajudiciales este período.</div></td></tr>`
+      :[...actosMes].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>{
+        const cobroColor=a.cobro==='Cobrado'?'var(--green)':a.cobro==='Pendiente'?'var(--orange)':'var(--text-dim)';
+        const cobroTag=a.cobro==='Cobrado'?'tag-active':a.cobro==='Pendiente'?'tag-pending':'tag-closed';
+        return`<tr>
+          <td data-label="Fecha" style="font-size:12px">${fmt(a.fecha)}</td>
+          <td data-label="Cliente" style="font-size:12px">${cNom(a.clienteId)}</td>
+          <td data-label="Tipo"><span class="tag tag-civil" style="font-size:11px">${a.tipo}</span></td>
+          <td data-label="Descripción" style="font-size:12px">${a.titulo||'—'}</td>
+          <td data-label="Honorario"><b style="color:var(--gold)">${a.honorario>0?$m(a.honorario):'—'}</b></td>
+          <td data-label="Estado cobro"><span class="tag ${cobroTag}" style="font-size:11px">${a.cobro}</span></td>
+        </tr>`;
+      }).join('');
+  }
 }
 
 function renderPendTable(){
@@ -1478,6 +1554,7 @@ function renderDash(){
   document.getElementById('ds-venc').textContent=urgentes;
   document.getElementById('ds-ingreso').textContent=$m(cobMes);
   document.getElementById('ds-pend').textContent=$m(totPend);
+  document.getElementById('ds-actos').textContent=S.actos.filter(a=>a.estado==='En proceso').length;
   document.getElementById('b-exp').textContent=activos;
   document.getElementById('b-venc').textContent=urgentes;
 
@@ -1622,10 +1699,13 @@ function exportBalance(){
   const iMes=S.honorarios.filter(h=>h.fecha&&h.fecha.startsWith(mes));
   const pagosMes=S.pagos.filter(p=>p.fecha&&p.fecha.startsWith(mes));
   const gMes=S.gastos.filter(g=>g.fecha&&g.fecha.startsWith(mes));
-  const cobrado=pagosMes.reduce((s,p)=>s+p.monto,0);
+  const actosMesExp=S.actos.filter(a=>a.fecha&&a.fecha.startsWith(mes));
+  const cobradoJud=pagosMes.reduce((s,p)=>s+p.monto,0);
+  const cobradoExtExp=actosMesExp.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
+  const cobrado=cobradoJud+cobradoExtExp;
   const totalGasto=gMes.reduce((s,g)=>s+g.monto,0);
   const balance=cobrado-totalGasto;
-  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0);
+  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0)+S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
 
   const fmt2=(f)=>{if(!f)return'';const[yy,mm,dd]=f.split('-');return`${dd}/${mm}/${yy}`;};
 
@@ -1641,12 +1721,17 @@ function exportBalance(){
       ['Período:', mesLabel],
       ['Generado:', fmt2(new Date().toISOString().split('T')[0])],
       [],
-      ['RESUMEN', ''],
-      ['Cobrado (pagos recibidos)', cobrado],
-      ['Gastos del período', totalGasto],
-      ['GANANCIA NETA', balance],
+      ['RESUMEN GENERAL', ''],
+      ['Cobrado — Honorarios judiciales', cobradoJud],
+      ['Cobrado — Trabajos extrajudiciales', cobradoExtExp],
+      ['TOTAL COBRADO', cobrado],
       [],
-      ['Honorarios pendientes (total acumulado)', totPend],
+      ['Gastos del período', totalGasto],
+      ['GANANCIA NETA (Cobrado − Gastos)', balance],
+      [],
+      ['Honorarios judiciales pendientes', S.honorarios.reduce((s,h)=>s+h.saldo,0)],
+      ['Trabajos extrajudiciales pendientes', S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0)],
+      ['TOTAL PENDIENTE DE COBRO', totPend],
     ];
     const ws1=XLSX.utils.aoa_to_sheet(resumen);
     ws1['!cols']=[{wch:40},{wch:20}];
@@ -1686,7 +1771,19 @@ function exportBalance(){
     ws4['!cols']=[{wch:14},{wch:28},{wch:35},{wch:16},{wch:20}];
     XLSX.utils.book_append_sheet(wb,ws4,'Gastos');
 
-    // ── Hoja 5: Honorarios pendientes por cliente ──
+    // ── Hoja 5: Trabajos Extrajudiciales ──
+    const extData=[['Fecha','Cliente','Tipo','Descripción / Título','Honorario ($)','Estado cobro','Notas']];
+    actosMesExp.forEach(a=>{
+      extData.push([fmt2(a.fecha),cNom(a.clienteId),a.tipo,a.titulo||'',a.honorario||0,a.cobro,a.notas||'']);
+    });
+    extData.push([]);
+    extData.push(['','','','TOTAL FACTURADO EXT.',actosMesExp.filter(a=>a.cobro!=='Sin honorario').reduce((s,a)=>s+(a.honorario||0),0),'','']);
+    extData.push(['','','','TOTAL COBRADO EXT.',cobradoExtExp,'','']);
+    const ws5e=XLSX.utils.aoa_to_sheet(extData);
+    ws5e['!cols']=[{wch:14},{wch:28},{wch:22},{wch:35},{wch:18},{wch:18},{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws5e,'Trabajos Extrajudiciales');
+
+    // ── Hoja 6: Honorarios pendientes por cliente ──
     const pendMap={};
     S.honorarios.filter(h=>h.saldo>0).forEach(h=>{
       const k=h.clienteId||'x';
@@ -1697,9 +1794,9 @@ function exportBalance(){
     Object.values(pendMap).sort((a,b)=>b.saldo-a.saldo).forEach(e=>{
       pendData.push([e.nombre,e.items.join(' / '),e.total,e.total-e.saldo,e.saldo]);
     });
-    const ws5=XLSX.utils.aoa_to_sheet(pendData);
-    ws5['!cols']=[{wch:28},{wch:40},{wch:20},{wch:16},{wch:20}];
-    XLSX.utils.book_append_sheet(wb,ws5,'Pendientes por cliente');
+    const ws6=XLSX.utils.aoa_to_sheet(pendData);
+    ws6['!cols']=[{wch:28},{wch:40},{wch:20},{wch:16},{wch:20}];
+    XLSX.utils.book_append_sheet(wb,ws6,'Pendientes por cliente');
 
     // ── Descargar ──
     XLSX.writeFile(wb,`Balance_${mesLabel.replace(' ','_')}_DeBlassiis.xlsx`);
@@ -1718,10 +1815,13 @@ function exportBalanceOLD_UNUSED(){
   const iMes=S.honorarios.filter(h=>h.fecha&&h.fecha.startsWith(mes));
   const pagosMes=S.pagos.filter(p=>p.fecha&&p.fecha.startsWith(mes));
   const gMes=S.gastos.filter(g=>g.fecha&&g.fecha.startsWith(mes));
-  const cobrado=pagosMes.reduce((s,p)=>s+p.monto,0);
+  const actosMesExp=S.actos.filter(a=>a.fecha&&a.fecha.startsWith(mes));
+  const cobradoJud=pagosMes.reduce((s,p)=>s+p.monto,0);
+  const cobradoExtExp=actosMesExp.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
+  const cobrado=cobradoJud+cobradoExtExp;
   const totalGasto=gMes.reduce((s,g)=>s+g.monto,0);
   const balance=cobrado-totalGasto;
-  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0);
+  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0)+S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
 
   const fmt2=(f)=>{if(!f)return'—';const[yy,mm,dd]=f.split('-');return`${dd}/${mm}/${yy}`;};
   const money2=(n)=>'$'+Number(n||0).toLocaleString('es-AR');
@@ -1902,8 +2002,170 @@ function restoreData(event){
   event.target.value='';
 }
 
+
+// ── ACTOS JURÍDICOS ──
+let actoEditId=null;
+
+function saveActo(){
+  const titulo=document.getElementById('a-titulo').value.trim();
+  if(!titulo){alert('Ingresá un título.');return;}
+  const hon=parseFloat(document.getElementById('a-honorario').value)||0;
+  const datos={
+    titulo,
+    fecha:document.getElementById('a-fecha').value,
+    clienteId:document.getElementById('a-cli').value,
+    tipo:document.getElementById('a-tipo').value,
+    estado:document.getElementById('a-estado').value,
+    honorario:hon,
+    cobro:document.getElementById('a-cobro').value,
+    notas:document.getElementById('a-notas').value,
+    docs:actoEditId?(S.actos.find(x=>x.id===actoEditId)?.docs||[]):[]
+  };
+  if(actoEditId){
+    const idx=S.actos.findIndex(x=>x.id===actoEditId);
+    if(idx>=0) S.actos[idx]={...S.actos[idx],...datos};
+    actoEditId=null;
+  } else {
+    S.actos.push({id:uid(),...datos});
+  }
+  save();
+  closeM('m-acto');
+  document.getElementById('m-acto-title').textContent='Nuevo Trabajo Extrajudicial';
+  clr(['a-titulo','a-honorario','a-notas']);
+  renderActos();renderDash();
+}
+
+function editActo(id){
+  const a=S.actos.find(x=>x.id===id);
+  if(!a)return;
+  actoEditId=id;
+  populateSels();
+  document.getElementById('m-acto-title').textContent='Editar Trabajo Extrajudicial';
+  document.getElementById('a-fecha').value=a.fecha||'';
+  document.getElementById('a-cli').value=a.clienteId||'';
+  document.getElementById('a-tipo').value=a.tipo||'Contrato';
+  document.getElementById('a-estado').value=a.estado||'En proceso';
+  document.getElementById('a-titulo').value=a.titulo||'';
+  document.getElementById('a-honorario').value=a.honorario||'';
+  document.getElementById('a-cobro').value=a.cobro||'Pendiente';
+  document.getElementById('a-notas').value=a.notas||'';
+  document.getElementById('m-acto').classList.add('open');
+}
+
+function delActo(id){
+  const a=S.actos.find(x=>x.id===id);
+  if(!a)return;
+  if(!confirm(`¿Eliminar el acto "${a.titulo}"?\n\nEsta acción no se puede deshacer.`))return;
+  S.actos=S.actos.filter(x=>x.id!==id);
+  save();renderActos();renderDash();
+}
+
+function toggleActoDocs(id){
+  const row=document.getElementById('acto-docs-row-'+id);
+  if(!row)return;
+  const visible=row.style.display!=='none';
+  document.querySelectorAll('[id^="acto-docs-row-"]').forEach(r=>r.style.display='none');
+  if(!visible) row.style.display='table-row';
+}
+
+function renderActoDocList(actoId){
+  const cont=document.getElementById('acto-docs-list-'+actoId);
+  if(!cont)return;
+  const a=S.actos.find(x=>x.id===actoId);
+  if(!a)return;
+  const docs=a.docs||[];
+  if(!docs.length){cont.innerHTML='<div style="font-size:13px;color:var(--text-dim);padding:4px 0 8px">Sin documentos. Agregá el primero.</div>';return;}
+  cont.innerHTML=docs.map(d=>`
+    <div class="doc-item">
+      <div class="doc-icon">📄</div>
+      <div style="flex:1">
+        <div class="doc-name">${d.nombre}</div>
+        <div class="doc-type">${d.tipo}${d.fecha?' · '+fmt(d.fecha):''}</div>
+      </div>
+      <div class="doc-actions">
+        <a href="${d.url}" target="_blank" class="btn btn-gold btn-xs">🔗 Abrir</a>
+        <button class="btn btn-danger btn-xs" onclick="delActoDoc('${actoId}','${d.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function openAddActoDoc(actoId){
+  document.getElementById('d-expid').value='ACTO:'+actoId;
+  document.getElementById('d-nombre').value='';
+  document.getElementById('d-url').value='';
+  document.getElementById('d-fecha').value='';
+  document.getElementById('m-doc').classList.add('open');
+}
+
+function delActoDoc(actoId,docId){
+  if(!confirm('¿Eliminar este documento?'))return;
+  const a=S.actos.find(x=>x.id===actoId);
+  if(!a||!a.docs)return;
+  a.docs=a.docs.filter(d=>d.id!==docId);
+  save();renderActoDocList(actoId);renderActos();
+  const row=document.getElementById('acto-docs-row-'+actoId);
+  if(row)row.style.display='table-row';
+}
+
+function renderActos(){
+  const q=(document.getElementById('s-acto')?.value||'').toLowerCase();
+  const rows=S.actos.filter(a=>
+    (a.titulo||'').toLowerCase().includes(q)||
+    cNom(a.clienteId).toLowerCase().includes(q)||
+    (a.tipo||'').toLowerCase().includes(q)
+  );
+  document.getElementById('acto-count').textContent=rows.length+' acto'+(rows.length!==1?'s':'');
+  const tb=document.getElementById('t-actos');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📝</div>Sin trabajos extrajudiciales. Creá el primero.</div></td></tr>`;return;}
+
+  const etag={
+    'En proceso':'<span class="tag tag-pending">🔄 En proceso</span>',
+    'Completado':'<span class="tag tag-active">✅ Completado</span>',
+    'Pendiente':'<span class="tag tag-closed">⏳ Pendiente</span>',
+    'Cancelado':'<span class="tag" style="background:var(--red-dim);color:var(--red)">❌ Cancelado</span>',
+  };
+  const ctag={
+    'Cobrado':'<span class="tag tag-active" style="font-size:11px">✅ Cobrado</span>',
+    'Pendiente':'<span class="tag tag-pending" style="font-size:11px">⏳ Pendiente</span>',
+    'Sin honorario':'<span class="tag tag-closed" style="font-size:11px">—</span>',
+  };
+
+  let html='';
+  [...rows].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).forEach(a=>{
+    const docs=a.docs||[];
+    html+=`<tr>
+      <td data-label="Fecha" style="font-size:13px">${fmt(a.fecha)}</td>
+      <td data-label="Cliente"><div class="td-main">${cNom(a.clienteId)}</div></td>
+      <td data-label="Tipo"><span class="tag tag-civil" style="font-size:11px">${a.tipo}</span></td>
+      <td data-label="Descripción"><div class="td-main">${a.titulo}</div><div class="td-sub">${a.notas?a.notas.slice(0,60)+(a.notas.length>60?'...':''):''}</div></td>
+      <td data-label="Estado">${etag[a.estado]||etag['En proceso']}</td>
+      <td data-label="Honorario">
+        ${a.honorario>0?`<div style="font-weight:700;color:var(--gold)">${$m(a.honorario)}</div>${ctag[a.cobro]||''}` :'<span style="color:var(--text-dim)">—</span>'}
+      </td>
+      <td data-label="Docs"><button class="btn btn-ghost btn-xs" onclick="toggleActoDocs('${a.id}')">📎 ${docs.length} doc${docs.length!==1?'s':''}</button></td>
+      <td data-label="">
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-xs" onclick="editActo('${a.id}')">✏️</button>
+          <button class="btn btn-danger btn-xs" onclick="delActo('${a.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>
+    <tr id="acto-docs-row-${a.id}" style="display:none" class="exp-row-docs">
+      <td colspan="8">
+        <div class="doc-panel">
+          <div class="doc-panel-title">📎 Documentos — ${a.titulo}</div>
+          <div id="acto-docs-list-${a.id}"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:10px" onclick="openAddActoDoc('${a.id}')">＋ Agregar documento</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  tb.innerHTML=html;
+  rows.forEach(a=>renderActoDocList(a.id));
+}
+
 // ── RENDER ALL ──
-function renderAll(){renderDash();renderExp();renderCli();renderVenc();updateAgendaBadges();}
+function renderAll(){renderDash();renderExp();renderCli();renderVenc();renderActos();updateAgendaBadges();}
 
 // ── INIT ──
 const _n=new Date();
@@ -1914,6 +2176,55 @@ document.getElementById('hoy-label').textContent=`${_ds[_n.getDay()]}, ${_n.getD
 // Verificar sesión al cargar
 checkSession();
 </script>
+
+<!-- Modal Trabajo Extrajudicial -->
+<div class="modal-wrap" id="m-acto">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" id="m-acto-title">Nuevo Trabajo Extrajudicial</div>
+    <div class="form-grid">
+      <div class="fg"><label>Fecha</label><input type="date" id="a-fecha"></div>
+      <div class="fg"><label>Cliente</label><select id="a-cli"><option value="">Seleccionar...</option></select></div>
+      <div class="fg"><label>Tipo de acto</label>
+        <select id="a-tipo">
+          <option>Contrato</option>
+          <option>Carta documento</option>
+          <option>Asesoramiento / Consulta</option>
+          <option>Poder notarial</option>
+          <option>Acta</option>
+          <option>Certificación</option>
+          <option>Mediación extrajudicial</option>
+          <option>Redacción de documento</option>
+          <option>Estudio de títulos</option>
+          <option>Dictamen jurídico</option>
+          <option>Trámite administrativo</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="fg"><label>Estado</label>
+        <select id="a-estado">
+          <option value="En proceso">🔄 En proceso</option>
+          <option value="Completado">✅ Completado</option>
+          <option value="Pendiente">⏳ Pendiente</option>
+          <option value="Cancelado">❌ Cancelado</option>
+        </select>
+      </div>
+      <div class="fg full"><label>Título / Descripción breve</label><input id="a-titulo" placeholder="Ej: Contrato de locación — García/López"></div>
+      <div class="fg"><label>Honorario pactado ($)</label><input type="number" id="a-honorario" placeholder="0"></div>
+      <div class="fg"><label>Estado de cobro</label>
+        <select id="a-cobro">
+          <option value="Pendiente">⏳ Pendiente de cobro</option>
+          <option value="Cobrado">✅ Cobrado</option>
+          <option value="Sin honorario">— Sin honorario</option>
+        </select>
+      </div>
+      <div class="fg full"><label>Detalle / Notas</label><textarea id="a-notas" placeholder="Descripción detallada del acto, partes intervinientes, condiciones..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeM('m-acto');actoEditId=null">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveActo()">Guardar acto</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Documentos -->
 <div class="modal-wrap" id="m-doc">
