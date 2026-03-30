@@ -841,25 +841,46 @@ function showSync(msg,color){
   if(color==='ok') setTimeout(()=>{el.style.opacity='0';},2000);
 }
 
+// Garantizar que todos los arrays existan
+function ensureArrays(){
+  S.expedientes=S.expedientes||[];
+  S.clientes=S.clientes||[];
+  S.vencimientos=S.vencimientos||[];
+  S.honorarios=S.honorarios||[];
+  S.pagos=S.pagos||[];
+  S.gastos=S.gastos||[];
+  S.actos=S.actos||[];
+  S.pagosExt=S.pagosExt||[];
+  // Asegurar saldo en honorarios existentes
+  S.honorarios.forEach(h=>{if(h.saldo===undefined)h.saldo=h.monto;});
+  // Asegurar saldo en actos existentes
+  S.actos.forEach(a=>{
+    if(a.honorario>0&&a.saldo===undefined){
+      const pagado=S.pagosExt.filter(p=>p.actoId===a.id).reduce((s,p)=>s+p.monto,0);
+      a.saldo=Math.max(0,a.honorario-pagado);
+    }
+  });
+}
+
 // Cargar datos desde Supabase
 async function load(){
   try {
     showSync('⏳ Cargando datos...','sync');
     const {data,error}=await supa.from('estudio_data').select('*').eq('doc_id',DOC_ID).single();
     if(error&&error.code==='PGRST116'){
-      // No existe aún — crear registro vacío
       await supa.from('estudio_data').insert({doc_id:DOC_ID,data:JSON.stringify(S)});
       showSync('✓ Listo','ok');
     } else if(error){
       throw error;
     } else if(data){
       S=JSON.parse(data.data);
+      ensureArrays();
       showSync('✓ Sincronizado','ok');
     }
   } catch(e){
     console.warn('Supabase error, usando localStorage:',e);
     const d=localStorage.getItem('ej4');
-    if(d) S=JSON.parse(d);
+    if(d){ S=JSON.parse(d); ensureArrays(); }
     showSync('⚠ Sin conexión — datos locales','err');
   }
 }
@@ -1431,6 +1452,7 @@ function saveGasto(){
 
 // ── FINANZAS ──
 function renderFin(){
+  ensureArrays();
   const sel=document.getElementById('fin-mes');
   const months=new Set([new Date().toISOString().slice(0,7)]);
   [...S.honorarios,...S.gastos,...S.pagos,...(S.actos||[]),...(S.pagosExt||[])].forEach(x=>{if(x.fecha)months.add(ym(x.fecha));});
@@ -1450,11 +1472,12 @@ function renderFin(){
   const pendJudicial=S.honorarios.reduce((s,h)=>s+h.saldo,0);
 
   // ── EXTRAJUDICIAL ──
-  if(!S.actos) S.actos=[];
+  ensureArrays();
   const actosMes=S.actos.filter(a=>ym(a.fecha)===mes);
-  const cobradoExt=actosMes.filter(a=>a.cobro==='Cobrado').reduce((s,a)=>s+(a.honorario||0),0);
-  const facturadoExt=actosMes.filter(a=>a.cobro!=='Sin honorario').reduce((s,a)=>s+(a.honorario||0),0);
-  const pendExt=S.actos.filter(a=>a.cobro==='Pendiente'&&a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
+  const pagosExtMes=S.pagosExt.filter(p=>ym(p.fecha)===mes);
+  const cobradoExt=pagosExtMes.reduce((s,p)=>s+p.monto,0);
+  const facturadoExt=actosMes.filter(a=>a.honorario>0).reduce((s,a)=>s+(a.honorario||0),0);
+  const pendExt=S.actos.filter(a=>a.honorario>0&&(a.saldo!==undefined?a.saldo:a.honorario)>0).reduce((s,a)=>s+(a.saldo!==undefined?a.saldo:a.honorario),0);
 
   // ── TOTALES ──
   const totalCobrado=cobradoJudicial+cobradoExt;
@@ -1663,8 +1686,7 @@ function delPago(id){
 
 // ── DASHBOARD ──
 function renderDash(){
-  if(!S.actos) S.actos=[];
-  if(!S.pagosExt) S.pagosExt=[];
+  ensureArrays();
 
   const mes=new Date().toISOString().slice(0,7);
   const activos=S.expedientes.filter(e=>e.estado==='Activo').length;
@@ -2294,7 +2316,7 @@ function delActoDoc(actoId,docId){
 }
 
 function renderActos(){
-  if(!S.actos) S.actos=[];
+  ensureArrays();
   const q=(document.getElementById('s-acto')?.value||'').toLowerCase();
   const rows=S.actos.filter(a=>
     (a.titulo||'').toLowerCase().includes(q)||
@@ -2396,12 +2418,15 @@ function savePagoExt(){
     ref:document.getElementById('pe-ref').value,
     notas:document.getElementById('pe-notas').value
   });
-  save();closeM('m-pago-ext');
+  save();
+  closeM('m-pago-ext');
   clr(['pe-monto','pe-ref','pe-notas']);
-  document.getElementById('pe-acto').innerHTML='<option value="">Seleccionar trabajo pendiente...</option>';
-  document.getElementById('pe-saldo-info').textContent='';
+  const peActoSel=document.getElementById('pe-acto');
+  if(peActoSel) peActoSel.innerHTML='<option value="">Seleccionar trabajo pendiente...</option>';
+  const peSaldoInfo=document.getElementById('pe-saldo-info');
+  if(peSaldoInfo) peSaldoInfo.textContent='';
   renderAll();
-  if(document.getElementById('page-finanzas').classList.contains('active'))renderFin();
+  renderFin();
 }
 
 function delPagoExt(id){
@@ -2425,6 +2450,7 @@ function abrirPagoExtCli(cliId){
 }
 // ── RENDER ALL ──
 function renderAll(){
+  ensureArrays();
   try{renderDash();}catch(e){console.error('renderDash:',e);}
   try{renderExp();}catch(e){console.error('renderExp:',e);}
   try{renderCli();}catch(e){console.error('renderCli:',e);}
