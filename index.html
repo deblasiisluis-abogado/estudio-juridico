@@ -324,21 +324,39 @@ textarea{resize:vertical;min-height:75px;}
 <div class="page active" id="page-dashboard">
   <div class="ph">
     <div><div class="ph-title">Dr. Luis de Blasiis</div><div class="ph-sub" id="hoy-label"></div></div>
+    <button class="btn btn-ghost btn-sm" onclick="goTo('finanzas',document.querySelector('[onclick*=finanzas]'))">Ver finanzas completas →</button>
   </div>
-  <div class="stats">
-    <div class="scard gold"><div class="sc-label">Expedientes activos</div><div class="sc-val" id="ds-exp">0</div><div class="sc-detail">causas en curso</div></div>
+
+  <!-- Fila 1: Estado general -->
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="scard gold"><div class="sc-label">Expedientes activos</div><div class="sc-val" id="ds-exp">0</div><div class="sc-detail">causas judiciales</div></div>
+    <div class="scard blue"><div class="sc-label">Trabajos extrajudiciales</div><div class="sc-val" id="ds-actos">0</div><div class="sc-detail">en proceso</div></div>
     <div class="scard red"><div class="sc-label">Vencimientos urgentes</div><div class="sc-val" id="ds-venc">0</div><div class="sc-detail">próximos 7 días</div></div>
-    <div class="scard green"><div class="sc-label">Ingresos del mes</div><div class="sc-val" id="ds-ingreso">$0</div><div class="sc-detail">cobrado este mes</div></div>
-    <div class="scard orange"><div class="sc-label">Honorarios pendientes</div><div class="sc-val" id="ds-pend">$0</div><div class="sc-detail">sin cobrar</div></div>
+    <div class="scard" style="background:var(--surface)"><div class="sc-label">Clientes</div><div class="sc-val" style="color:var(--text)" id="ds-clientes">0</div><div class="sc-detail">en cartera</div></div>
   </div>
+
+  <!-- Fila 2: Finanzas del mes -->
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-top:0">
+    <div class="scard green"><div class="sc-label">Total cobrado este mes</div><div class="sc-val" id="ds-ingreso">$0</div><div class="sc-detail">judicial + extrajudicial</div></div>
+    <div class="scard orange"><div class="sc-label">Total pendiente de cobro</div><div class="sc-val" id="ds-pend">$0</div><div class="sc-detail">judicial + extrajudicial</div></div>
+    <div class="scard red"><div class="sc-label">Gastos del mes</div><div class="sc-val" id="ds-gastos">$0</div><div class="sc-detail">egresos</div></div>
+    <div class="scard gold" id="ds-balance-card"><div class="sc-label">Balance del mes</div><div class="sc-val" id="ds-balance">$0</div><div class="sc-detail">ganancia neta</div></div>
+  </div>
+
   <div class="two-col">
     <div class="tcard">
       <div class="tcard-header"><div class="tcard-title">⏰ Próximos vencimientos</div></div>
       <div class="venc-list" id="dash-venc"><div class="empty"><div class="empty-icon">✅</div>Sin vencimientos próximos</div></div>
     </div>
-    <div class="tcard">
-      <div class="tcard-header"><div class="tcard-title">💳 Honorarios pendientes por cliente</div></div>
-      <div style="padding:8px 18px 12px" id="dash-pend"><div class="empty"><div class="empty-icon">✅</div>Sin pendientes</div></div>
+    <div>
+      <div class="tcard" style="margin-bottom:16px">
+        <div class="tcard-header"><div class="tcard-title">💳 Pendientes judiciales por cliente</div></div>
+        <div style="padding:8px 18px 12px" id="dash-pend"><div class="empty"><div class="empty-icon">✅</div>Sin pendientes</div></div>
+      </div>
+      <div class="tcard">
+        <div class="tcard-header"><div class="tcard-title">📝 Pendientes extrajudiciales por cliente</div></div>
+        <div style="padding:8px 18px 12px" id="dash-pend-ext"><div class="empty"><div class="empty-icon">✅</div>Sin pendientes</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1415,7 +1433,7 @@ function saveGasto(){
 function renderFin(){
   const sel=document.getElementById('fin-mes');
   const months=new Set([new Date().toISOString().slice(0,7)]);
-  [...S.honorarios,...S.gastos,...S.pagos,...S.actos].forEach(x=>{if(x.fecha)months.add(ym(x.fecha));});
+  [...S.honorarios,...S.gastos,...S.pagos,...(S.actos||[]),...(S.pagosExt||[])].forEach(x=>{if(x.fecha)months.add(ym(x.fecha));});
   const arr=[...months].sort().reverse();
   const cur=sel.value||arr[0];
   const mnames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1645,23 +1663,75 @@ function delPago(id){
 
 // ── DASHBOARD ──
 function renderDash(){
-  const activos=S.expedientes.filter(e=>e.estado==='Activo').length;
-  const urgentes=S.vencimientos.filter(v=>!v.cumplido&&days(v.fecha)<=7&&days(v.fecha)>=0).length;
-  const mes=new Date().toISOString().slice(0,7);
-  const cobMes=S.pagos.filter(p=>ym(p.fecha)===mes).reduce((s,p)=>s+p.monto,0);
-  const totPend=S.honorarios.reduce((s,h)=>s+h.saldo,0);
-  document.getElementById('ds-exp').textContent=activos;
-  document.getElementById('ds-venc').textContent=urgentes;
-  document.getElementById('ds-ingreso').textContent=$m(cobMes);
-  document.getElementById('ds-pend').textContent=$m(totPend);
-  _d('b-exp',activos);
-  document.getElementById('b-venc').textContent=urgentes;
+  if(!S.actos) S.actos=[];
+  if(!S.pagosExt) S.pagosExt=[];
 
+  const mes=new Date().toISOString().slice(0,7);
+  const activos=S.expedientes.filter(e=>e.estado==='Activo').length;
+  const actosEnProceso=S.actos.filter(a=>a.estado==='En proceso').length;
+  const urgentes=S.vencimientos.filter(v=>!v.cumplido&&days(v.fecha)<=7&&days(v.fecha)>=0).length;
+  const clientes=S.clientes.length;
+
+  // Cobrado judicial (pagos registrados este mes)
+  const cobJudMes=S.pagos.filter(p=>ym(p.fecha)===mes).reduce((s,p)=>s+p.monto,0);
+  // Cobrado extrajudicial (pagosExt registrados este mes)
+  const cobExtMes=S.pagosExt.filter(p=>ym(p.fecha)===mes).reduce((s,p)=>s+p.monto,0);
+  const totalCobMes=cobJudMes+cobExtMes;
+
+  // Pendiente judicial
+  const pendJud=S.honorarios.reduce((s,h)=>s+(h.saldo||0),0);
+  // Pendiente extrajudicial
+  const pendExt=S.actos.filter(a=>a.honorario>0).reduce((s,a)=>s+(a.saldo!==undefined?a.saldo:a.honorario),0);
+  const totalPend=pendJud+pendExt;
+
+  // Gastos del mes
+  const gastosMes=S.gastos.filter(g=>ym(g.fecha)===mes).reduce((s,g)=>s+g.monto,0);
+  // Balance del mes
+  const balanceMes=totalCobMes-gastosMes;
+
+  // Actualizar tarjetas
+  const _s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  _s('ds-exp',activos);
+  _s('ds-actos',actosEnProceso);
+  _s('ds-venc',urgentes);
+  _s('ds-clientes',clientes);
+  _s('ds-ingreso',$m(totalCobMes));
+  _s('ds-pend',$m(totalPend));
+  _s('ds-gastos',$m(gastosMes));
+  _s('ds-balance',$m(balanceMes));
+  _s('b-exp',activos);
+  _s('b-venc',urgentes);
+
+  // Color balance
+  const bc=document.getElementById('ds-balance-card');
+  if(bc) bc.className='scard '+(balanceMes>=0?'green':'red');
+
+  // Vencimientos próximos
   const prox=[...S.vencimientos].filter(v=>!v.cumplido&&days(v.fecha)>=0).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,5);
   const dv=document.getElementById('dash-venc');
-  dv.innerHTML=!prox.length?'<div class="empty"><div class="empty-icon">✅</div>Sin vencimientos próximos</div>'
+  if(dv) dv.innerHTML=!prox.length?'<div class="empty"><div class="empty-icon">✅</div>Sin vencimientos próximos</div>'
     :prox.map(v=>{const d=days(v.fecha);return`<div class="vi"><div class="vi-dot ${d<=3?'dot-r':d<=7?'dot-o':'dot-g'}"></div><div class="vi-body"><div class="vi-title">${v.desc}</div><div class="vi-meta">${v.tipo}${v.expId?' · '+eNro(v.expId):''}</div></div><div class="vi-date">${fmt(v.fecha)}<br><span style="color:${d<=3?'var(--red)':'var(--text-dim)'}">${d===0?'HOY':d+'d'}</span></div></div>`;}).join('');
+
+  // Pendientes judiciales por cliente
   renderPendList('dash-pend');
+
+  // Pendientes extrajudiciales por cliente
+  const contExt=document.getElementById('dash-pend-ext');
+  if(contExt){
+    const mapExt={};
+    S.actos.filter(a=>a.honorario>0&&(a.saldo!==undefined?a.saldo:a.honorario)>0).forEach(a=>{
+      const k=a.clienteId||'x';
+      if(!mapExt[k])mapExt[k]={nombre:a.clienteId?cNom(a.clienteId):'Sin cliente',total:0,count:0};
+      mapExt[k].total+=(a.saldo!==undefined?a.saldo:a.honorario);
+      mapExt[k].count++;
+    });
+    const extEntries=Object.values(mapExt).sort((a,b)=>b.total-a.total);
+    contExt.innerHTML=!extEntries.length?'<div class="empty"><div class="empty-icon">✅</div>Sin pendientes extrajudiciales</div>'
+      :extEntries.map(e=>`<div class="pend-row"><div><div class="pend-name">${e.nombre}</div><div class="pend-meta">${e.count} trabajo${e.count!==1?'s':''} pendiente${e.count!==1?'s':''}</div></div><div class="pend-amt">${$m(e.total)}</div></div>`).join('');
+  }
+
+  // Actualizar badge agenda
+  updateAgendaBadges();
 }
 
 // ── CALENDAR ──
