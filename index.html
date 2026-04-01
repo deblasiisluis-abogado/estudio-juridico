@@ -7,14 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#eef0f4;--surface:#ffffff;--surface2:#f3f5f8;--surface3:#e8eaee;
-  --border:#d0d4dc;--gold:#b8860b;--gold-lt:#d4a017;--gold-dim:rgba(184,134,11,.12);
-  --text:#1a1d26;--text-sub:#5a6070;--text-dim:#9098a8;
-  --green:#1e8a4a;--green-dim:rgba(30,138,74,.12);
-  --red:#c0392b;--red-dim:rgba(192,57,43,.12);
-  --orange:#c06010;--orange-dim:rgba(192,96,16,.12);
-  --blue:#1a5fa8;--blue-dim:rgba(26,95,168,.12);
-  --radius:10px;--shadow:0 2px 12px rgba(0,0,0,.10);
+  --bg:#1c1f2a;--surface:#242836;--surface2:#2c3044;--surface3:#353a50;
+  --border:#3e4560;--gold:#c9a84c;--gold-lt:#ddb95a;--gold-dim:rgba(201,168,76,.15);
+  --text:#e8e4d8;--text-sub:#9a96a0;--text-dim:#5e5e6e;
+  --green:#4caf78;--green-dim:rgba(76,175,120,.15);
+  --red:#d96060;--red-dim:rgba(217,96,96,.15);
+  --orange:#d4884a;--orange-dim:rgba(212,136,74,.15);
+  --blue:#5a90cc;--blue-dim:rgba(90,144,204,.15);
+  --radius:10px;--shadow:0 4px 20px rgba(0,0,0,.30);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);font-size:16.5px;}
@@ -88,7 +88,7 @@ thead tr{background:var(--surface2);}
 th{text-align:left;padding:11px 18px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-sub);font-weight:600;border-bottom:1px solid var(--border);}
 td{padding:13px 18px;font-size:14.5px;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
-tbody tr:hover{background:rgba(26,95,168,.04);}
+tbody tr:hover{background:rgba(255,255,255,.04);}
 .td-main{font-weight:600;color:var(--text);}
 .td-sub{font-size:11px;color:var(--text-sub);margin-top:2px;}
 
@@ -114,7 +114,7 @@ tbody tr:hover{background:rgba(26,95,168,.04);}
 label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-sub);}
 input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 13px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;transition:border-color .15s;width:100%;}
 input:focus,select:focus,textarea:focus{border-color:var(--gold);}
-select option{background:#fff;color:#1a1d26;}
+select option{background:#242836;color:#e8e4d8;}
 textarea{resize:vertical;min-height:75px;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
 
@@ -236,9 +236,9 @@ textarea{resize:vertical;min-height:75px;}
 
 /* AGENDA ALERTAS */
 .alerta-strip{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-radius:10px;margin-bottom:10px;border:1px solid;}
-.alerta-strip.rojo{background:#fdf0f0;border-color:#e8a0a0;color:#8b1a1a;}
-.alerta-strip.amarillo{background:#fdf8e8;border-color:#d4b84a;color:#7a5c00;}
-.alerta-strip.verde{background:#f0faf4;border-color:#7bc99a;color:#1a5c30;}
+.alerta-strip.rojo{background:rgba(217,96,96,.12);border-color:rgba(217,96,96,.35);color:#e89090;}
+.alerta-strip.amarillo{background:rgba(212,136,74,.12);border-color:rgba(201,168,76,.35);color:#c9a84c;}
+.alerta-strip.verde{background:rgba(76,175,120,.12);border-color:rgba(76,175,120,.35);color:#4caf78;}
 .alerta-icon{font-size:22px;flex-shrink:0;}
 .alerta-body{flex:1;}
 .alerta-title{font-weight:700;font-size:14px;}
@@ -2085,9 +2085,9 @@ function exportBalanceOLD_UNUSED(){
 
 /* AGENDA ALERTAS */
 .alerta-strip{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-radius:10px;margin-bottom:10px;border:1px solid;}
-.alerta-strip.rojo{background:#fdf0f0;border-color:#e8a0a0;color:#8b1a1a;}
-.alerta-strip.amarillo{background:#fdf8e8;border-color:#d4b84a;color:#7a5c00;}
-.alerta-strip.verde{background:#f0faf4;border-color:#7bc99a;color:#1a5c30;}
+.alerta-strip.rojo{background:rgba(217,96,96,.12);border-color:rgba(217,96,96,.35);color:#e89090;}
+.alerta-strip.amarillo{background:rgba(212,136,74,.12);border-color:rgba(201,168,76,.35);color:#c9a84c;}
+.alerta-strip.verde{background:rgba(76,175,120,.12);border-color:rgba(76,175,120,.35);color:#4caf78;}
 .alerta-icon{font-size:22px;flex-shrink:0;}
 .alerta-body{flex:1;}
 .alerta-title{font-weight:700;font-size:14px;}
