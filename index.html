@@ -542,7 +542,7 @@ textarea{resize:vertical;min-height:75px;}
   <div class="tcard">
     <div class="tcard-header"><div class="tcard-title">💳 Trabajos extrajudiciales pendientes de cobro</div></div>
     <div style="overflow-x:auto">
-      <table><thead><tr><th>Cliente</th><th>Trabajo</th><th>Facturado</th><th>Pagado</th><th>Saldo pendiente</th><th></th></tr></thead>
+      <table><thead><tr><th>Cliente</th><th>Facturado</th><th>Cobrado</th><th>Saldo pendiente</th><th></th></tr></thead>
       <tbody id="t-pend-ext"></tbody>
     </table>
     </div>
@@ -1624,7 +1624,7 @@ function renderFin(){
     });
     const entries=Object.values(mapExt).sort((a,b)=>b.totalSaldo-a.totalSaldo);
     if(!entries.length){
-      tPendExt.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">✅</div>Sin trabajos extrajudiciales pendientes de cobro.</div></td></tr>`;
+      tPendExt.innerHTML=`<tr><td colspan="5"><div class="empty"><div class="empty-icon">✅</div>Sin trabajos extrajudiciales pendientes de cobro.</div></td></tr>`;
     } else {
       tPendExt.innerHTML=entries.map(e=>{
         const pagado=e.totalFact-e.totalSaldo;
