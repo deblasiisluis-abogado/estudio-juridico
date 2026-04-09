@@ -384,7 +384,8 @@ textarea{resize:vertical;min-height:75px;}
 <div class="page" id="page-clientes">
   <div class="ph">
     <div><div class="ph-title">Clientes</div><div class="ph-sub">Directorio</div></div>
-    <button class="btn btn-gold" onclick="cliEditId=null;document.getElementById('m-cli-title').textContent='Nuevo Cliente';clr(['c-nom','c-dni','c-pasaporte','c-tel','c-tel2','c-email','c-dom','c-dom-legal','c-ocupacion','c-empresa','c-notas']);openM('m-cli')">＋ Nuevo cliente</button>
+    <button class="btn btn-gold" onclick="cliEditId=null;document.getElementById('m-cli-title').textContent='Nuevo Cliente';clr(['c-nom','c-dni','c-cuil','c-cuit','c-pasaporte','c-tel','c-tel2','c-email','c-dom','c-dom-legal','c-ocupacion','c-empresa','c-notas']);
+  toggleCamposDoc();openM('m-cli')">＋ Nuevo cliente</button>
   </div>
   <div class="tcard">
     <div class="tcard-header">
@@ -738,7 +739,29 @@ textarea{resize:vertical;min-height:75px;}
           <option>Masculino</option><option>Femenino</option><option>No binario</option><option>Prefiero no indicar</option>
         </select>
       </div>
-      <div class="fg"><label>DNI / CUIT / CUIL</label><input id="c-dni" placeholder="20.123.456-7"></div>
+      <div class="fg full">
+        <label>Tipo de persona</label>
+        <select id="c-tipo-persona" onchange="toggleCamposDoc()">
+          <option value="Fisica">👤 Persona física</option>
+          <option value="Juridica">🏢 Persona jurídica</option>
+        </select>
+      </div>
+      <!-- Persona física: DNI + CUIL -->
+      <div class="fg" id="campo-dni">
+        <label>DNI</label>
+        <input id="c-dni" placeholder="12.345.678" oninput="formatDNI(this);checkDuplicateClient(this.value)">
+        <div id="c-dni-alert" style="font-size:12px;color:var(--orange);margin-top:3px;display:none"></div>
+      </div>
+      <div class="fg" id="campo-cuil">
+        <label>CUIL</label>
+        <input id="c-cuil" placeholder="20-12345678-9" oninput="formatCUIL(this)">
+      </div>
+      <!-- Persona jurídica: solo CUIT -->
+      <div class="fg full" id="campo-cuit" style="display:none">
+        <label>CUIT</label>
+        <input id="c-cuit" placeholder="30-12345678-9" oninput="formatCUIL(this);checkDuplicateClient(this.value)">
+        <div id="c-cuit-alert" style="font-size:12px;color:var(--orange);margin-top:3px;display:none"></div>
+      </div>
       <div class="fg"><label>Pasaporte (opcional)</label><input id="c-pasaporte" placeholder="AAB123456"></div>
     </div>
 
@@ -1252,7 +1275,11 @@ function editCli(id){
   document.getElementById('c-nac').value=c.nacionalidad||'';
   document.getElementById('c-ecivil').value=c.estadoCivil||'';
   document.getElementById('c-genero').value=c.genero||'';
+  document.getElementById('c-tipo-persona').value=c.tipoPersona||'Fisica';
+  toggleCamposDoc();
   document.getElementById('c-dni').value=c.dni||'';
+  document.getElementById('c-cuil').value=c.cuil||'';
+  document.getElementById('c-cuit').value=c.cuit||'';
   document.getElementById('c-pasaporte').value=c.pasaporte||'';
   document.getElementById('c-tel').value=c.tel||'';
   document.getElementById('c-tel2').value=c.tel2||'';
@@ -1301,7 +1328,10 @@ function saveCli(){
     nacionalidad:document.getElementById('c-nac').value,
     estadoCivil:document.getElementById('c-ecivil').value,
     genero:document.getElementById('c-genero').value,
+    tipoPersona:document.getElementById('c-tipo-persona').value,
     dni:document.getElementById('c-dni').value,
+    cuil:document.getElementById('c-cuil').value,
+    cuit:document.getElementById('c-cuit').value,
     pasaporte:document.getElementById('c-pasaporte').value,
     tel:document.getElementById('c-tel').value,
     tel2:document.getElementById('c-tel2').value,
@@ -1323,7 +1353,8 @@ function saveCli(){
   save();
   closeM('m-cli');
   document.getElementById('m-cli-title').textContent='Nuevo Cliente';
-  clr(['c-nom','c-dni','c-pasaporte','c-tel','c-tel2','c-email','c-dom','c-dom-legal','c-ocupacion','c-empresa','c-notas']);
+  clr(['c-nom','c-dni','c-cuil','c-cuit','c-pasaporte','c-tel','c-tel2','c-email','c-dom','c-dom-legal','c-ocupacion','c-empresa','c-notas']);
+  toggleCamposDoc();
   renderAll();
 }
 
@@ -1343,7 +1374,7 @@ function delCli(id){
 
 function renderCli(){
   const q=(document.getElementById('s-cli')?.value||'').toLowerCase();
-  const rows=S.clientes.filter(c=>c.nombre.toLowerCase().includes(q)||(c.dni||'').includes(q)||(c.email||'').toLowerCase().includes(q));
+  const rows=S.clientes.filter(c=>c.nombre.toLowerCase().includes(q)||(c.dni||'').includes(q)||(c.cuil||'').includes(q)||(c.cuit||'').includes(q)||(c.email||'').toLowerCase().includes(q));
   document.getElementById('cli-count').textContent=rows.length+' cliente'+(rows.length!==1?'s':'');
   const tb=document.getElementById('t-cli');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">👤</div>Sin clientes.</div></td></tr>`;return;}
@@ -1358,7 +1389,7 @@ function renderCli(){
         <div class="td-main">${c.nombre}</div>
         <div class="td-sub">${meta||c.domicilio||''}</div>
       </td>
-      <td data-label="DNI/CUIT" style="color:var(--text-sub);font-size:13px">${c.dni||'—'}</td>
+      <td data-label="DNI/CUIT" style="color:var(--text-sub);font-size:13px">${c.tipoPersona==='Juridica'?'CUIT: '+( c.cuit||'—'):(c.dni?'DNI: '+c.dni:'—')+(c.cuil?'<div style="font-size:11px">CUIL: '+c.cuil+'</div>':'')} </td>
       <td data-label="Edad / Nac." style="color:var(--text-sub);font-size:13px">${edadStr}${c.fnac?'<div style="font-size:11px;color:var(--text-dim)">'+fmt(c.fnac)+'</div>':''}</td>
       <td data-label="Teléfono" style="color:var(--text-sub);font-size:13px">${c.tel||'—'}${c.tel2?'<div style="font-size:11px;color:var(--text-dim)">'+c.tel2+'</div>':''}</td>
       <td data-label="Email" style="font-size:12px;color:var(--text-sub)">${c.email||'—'}</td>
@@ -2662,8 +2693,11 @@ function buscarCliente(q, resultId, selectId){
   const nuevoLink=document.getElementById('e-cli-nuevo-link');
   if(!res)return;
   if(!q||q.length<2){res.style.display='none';if(nuevoLink)nuevoLink.style.display='none';return;}
+  const qClean=q.replace(/[.\-]/g,'');
   const encontrados=S.clientes.filter(c=>
-    (c.dni||'').replace(/[.\-]/g,'').includes(q.replace(/[.\-]/g,''))||
+    (c.dni||'').replace(/[.\-]/g,'').includes(qClean)||
+    (c.cuil||'').replace(/[.\-]/g,'').includes(qClean)||
+    (c.cuit||'').replace(/[.\-]/g,'').includes(qClean)||
     c.nombre.toLowerCase().includes(q.toLowerCase())
   );
   if(!encontrados.length){
@@ -2678,7 +2712,7 @@ function buscarCliente(q, resultId, selectId){
     <div onclick="seleccionarCliente('${c.id}','${selectId}','${resultId}')"
       style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px"
       onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background=''">
-      <b>${c.nombre}</b> <span style="color:var(--text-sub);font-size:12px">· ${c.dni||'Sin DNI'}</span>
+      <b>${c.nombre}</b> <span style="color:var(--text-sub);font-size:12px">· ${c.tipoPersona==='Juridica'?'CUIT: '+(c.cuit||'—'):'DNI: '+(c.dni||'Sin DNI')}</span>
     </div>`).join('');
 }
 
@@ -2690,7 +2724,7 @@ function seleccionarCliente(cliId, selectId, resultId){
   if(res) res.style.display='none';
   if(search){
     const c=S.clientes.find(x=>x.id===cliId);
-    if(c) search.value=c.nombre+' ('+( c.dni||'Sin DNI')+')';
+    if(c){const doc=c.tipoPersona==='Juridica'?'CUIT: '+(c.cuit||'—'):'DNI: '+(c.dni||'Sin DNI');search.value=c.nombre+' ('+doc+')';};
   }
 }
 
@@ -2780,34 +2814,52 @@ function renderContrapartes(contrapartes){
   });
 }
 
-// ── FORMATO AUTOMÁTICO DNI / CUIL / CUIT ──
-function formatDoc(input){
-  let v=input.value.replace(/[^0-9]/g,'');
-  if(v.length<=8){
-    // DNI: 12.345.678
-    if(v.length>6) v=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
-    else if(v.length>3) v=v.slice(0,2)+'.'+v.slice(2,5);
-  } else {
-    // CUIL/CUIT: 20-12345678-9
-    v=v.slice(0,11);
-    if(v.length>10) v=v.slice(0,2)+'-'+v.slice(2,10)+'-'+v.slice(10);
-    else if(v.length>2) v=v.slice(0,2)+'-'+v.slice(2);
-  }
+// ── FORMATO AUTOMÁTICO DOCUMENTOS ──
+function toggleCamposDoc(){
+  const tipo=document.getElementById('c-tipo-persona')?.value||'Fisica';
+  const campoDni=document.getElementById('campo-dni');
+  const campoCuil=document.getElementById('campo-cuil');
+  const campoCuit=document.getElementById('campo-cuit');
+  if(campoDni) campoDni.style.display=tipo==='Fisica'?'':'none';
+  if(campoCuil) campoCuil.style.display=tipo==='Fisica'?'':'none';
+  if(campoCuit) campoCuit.style.display=tipo==='Juridica'?'':'none';
+}
+
+function formatDNI(input){
+  let v=input.value.replace(/[^0-9]/g,'').slice(0,8);
+  if(v.length>6)      v=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
+  else if(v.length>3) v=v.slice(0,2)+'.'+v.slice(2,5);
   input.value=v;
 }
 
+function formatCUIL(input){
+  let v=input.value.replace(/[^0-9]/g,'').slice(0,11);
+  if(v.length>10)    v=v.slice(0,2)+'-'+v.slice(2,10)+'-'+v.slice(10);
+  else if(v.length>2) v=v.slice(0,2)+'-'+v.slice(2);
+  input.value=v;
+}
+
+// Mantener compatibilidad con contrapartes
+function formatDoc(input){ formatCUIL(input); }
+
 
 function checkDuplicateClient(val){
-  const alert=document.getElementById('c-dni-alert');
-  if(!alert)return;
-  if(!val||val.length<6){alert.style.display='none';return;}
+  const alertDni=document.getElementById('c-dni-alert');
+  const alertCuit=document.getElementById('c-cuit-alert');
+  const alertEl=alertDni&&alertDni.closest('#campo-dni')?.style.display!=='none'?alertDni:alertCuit;
+  if(!alertEl)return;
+  if(!val||val.replace(/[.\-]/g,'').length<6){alertEl.style.display='none';return;}
   const clean=val.replace(/[.\-]/g,'');
-  const existe=S.clientes.find(c=>(c.dni||'').replace(/[.\-]/g,'')===clean);
+  const existe=S.clientes.find(c=>
+    (c.dni||'').replace(/[.\-]/g,'')===clean||
+    (c.cuil||'').replace(/[.\-]/g,'')===clean||
+    (c.cuit||'').replace(/[.\-]/g,'')===clean
+  );
   if(existe){
-    alert.style.display='block';
-    alert.innerHTML=`⚠ Ya existe: <b>${existe.nombre}</b>. ¿Es el mismo cliente?`;
+    alertEl.style.display='block';
+    alertEl.innerHTML=`⚠ Ya existe en el sistema: <b>${existe.nombre}</b>`;
   } else {
-    alert.style.display='none';
+    alertEl.style.display='none';
   }
 }
 
