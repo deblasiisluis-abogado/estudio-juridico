@@ -19,37 +19,56 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:'Nunito',sans-serif;color:var(--text);font-size:16.5px;}
 body{
-  background-color:#111111;
+  background-color:#0f0f0f;
   background-image:
-    /* Venas marmoladas muy sutiles sobre negro */
+    /* Venas principales doradas — más visibles */
     repeating-linear-gradient(
       118deg,
       transparent 0px,
-      transparent 60px,
-      rgba(201,168,76,0.03) 60px,
-      rgba(201,168,76,0.03) 61px,
-      transparent 61px,
-      transparent 140px,
-      rgba(255,255,255,0.018) 140px,
-      rgba(255,255,255,0.018) 141px,
-      transparent 141px,
-      transparent 240px,
-      rgba(201,168,76,0.015) 240px,
-      rgba(201,168,76,0.015) 241px,
-      transparent 241px,
-      transparent 400px
+      transparent 55px,
+      rgba(201,168,76,0.07) 55px,
+      rgba(201,168,76,0.09) 56px,
+      rgba(201,168,76,0.04) 57px,
+      transparent 58px,
+      transparent 130px,
+      rgba(255,255,255,0.05) 130px,
+      rgba(255,255,255,0.07) 131px,
+      rgba(255,255,255,0.03) 132px,
+      transparent 133px,
+      transparent 200px,
+      rgba(201,168,76,0.05) 200px,
+      rgba(201,168,76,0.06) 201px,
+      transparent 202px,
+      transparent 340px
     ),
+    /* Venas cruzadas blancas */
     repeating-linear-gradient(
-      62deg,
+      58deg,
       transparent 0px,
-      transparent 100px,
-      rgba(255,255,255,0.012) 100px,
-      rgba(255,255,255,0.012) 101px,
-      transparent 101px,
-      transparent 280px
+      transparent 80px,
+      rgba(255,255,255,0.04) 80px,
+      rgba(255,255,255,0.06) 81px,
+      rgba(255,255,255,0.02) 82px,
+      transparent 83px,
+      transparent 190px,
+      rgba(201,168,76,0.04) 190px,
+      rgba(201,168,76,0.05) 191px,
+      transparent 192px,
+      transparent 310px
     ),
-    /* Profundidad radial sutil */
-    radial-gradient(ellipse at 30% 40%, #1a1a1a 0%, #111111 60%, #0d0d0d 100%);
+    /* Venas finas adicionales */
+    repeating-linear-gradient(
+      145deg,
+      transparent 0px,
+      transparent 110px,
+      rgba(255,255,255,0.03) 110px,
+      rgba(255,255,255,0.04) 111px,
+      transparent 112px,
+      transparent 260px
+    ),
+    /* Profundidad — zonas más claras y más oscuras */
+    radial-gradient(ellipse at 15% 30%, #1c1c1c 0%, #0f0f0f 45%, #080808 100%),
+    radial-gradient(ellipse at 80% 70%, #181818 0%, #0f0f0f 50%);
 }
 .app{display:flex;height:100vh;overflow:hidden;}
 
