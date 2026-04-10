@@ -7,9 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#1c1f2a;--surface:#242836;--surface2:#2c3044;--surface3:#353a50;
-  --border:#3e4560;--gold:#c9a84c;--gold-lt:#ddb95a;--gold-dim:rgba(201,168,76,.15);
-  --text:#e8e4d8;--text-sub:#9a96a0;--text-dim:#5e5e6e;
+  --bg:#111111;--surface:#1a1a1a;--surface2:#222222;--surface3:#2a2a2a;
+  --border:#333333;--gold:#c9a84c;--gold-lt:#ddb95a;--gold-dim:rgba(201,168,76,.15);
+  --text:#e8e4d8;--text-sub:#9a96a0;--text-dim:#5a5a5a;
   --green:#4caf78;--green-dim:rgba(76,175,120,.15);
   --red:#d96060;--red-dim:rgba(217,96,96,.15);
   --orange:#d4884a;--orange-dim:rgba(212,136,74,.15);
@@ -17,11 +17,44 @@
   --radius:10px;--shadow:0 4px 20px rgba(0,0,0,.30);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);font-size:16.5px;}
+html,body{height:100%;font-family:'Nunito',sans-serif;color:var(--text);font-size:16.5px;}
+body{
+  background-color:#111111;
+  background-image:
+    /* Venas marmoladas muy sutiles sobre negro */
+    repeating-linear-gradient(
+      118deg,
+      transparent 0px,
+      transparent 60px,
+      rgba(201,168,76,0.03) 60px,
+      rgba(201,168,76,0.03) 61px,
+      transparent 61px,
+      transparent 140px,
+      rgba(255,255,255,0.018) 140px,
+      rgba(255,255,255,0.018) 141px,
+      transparent 141px,
+      transparent 240px,
+      rgba(201,168,76,0.015) 240px,
+      rgba(201,168,76,0.015) 241px,
+      transparent 241px,
+      transparent 400px
+    ),
+    repeating-linear-gradient(
+      62deg,
+      transparent 0px,
+      transparent 100px,
+      rgba(255,255,255,0.012) 100px,
+      rgba(255,255,255,0.012) 101px,
+      transparent 101px,
+      transparent 280px
+    ),
+    /* Profundidad radial sutil */
+    radial-gradient(ellipse at 30% 40%, #1a1a1a 0%, #111111 60%, #0d0d0d 100%);
+}
 .app{display:flex;height:100vh;overflow:hidden;}
 
 /* SIDEBAR */
-.sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:transform .3s;z-index:200;}
+.sidebar{width:220px;min-width:220px;background:linear-gradient(180deg,#202020 0%,#1a1a1a 100%);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:transform .3s;z-index:200;}
 .logo{padding:22px 20px 18px;border-bottom:1px solid var(--border);}
 .logo-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);line-height:1.2;}
 .logo-sub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-top:3px;}
@@ -245,7 +278,7 @@ textarea{resize:vertical;min-height:75px;}
 .alerta-detail{font-size:12.5px;margin-top:4px;line-height:1.5;}
 
 /* LOGIN */
-#login-screen{display:none;position:fixed;inset:0;z-index:9000;background:var(--bg);align-items:center;justify-content:center;}
+#login-screen{display:none;position:fixed;inset:0;z-index:9000;background:#111111;align-items:center;justify-content:center;}
 #login-screen.visible{display:flex;}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.15);}
 .login-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);text-align:center;line-height:1.2;margin-bottom:6px;}
@@ -2302,7 +2335,7 @@ function exportBalanceOLD_UNUSED(){
 .alerta-detail{font-size:12.5px;margin-top:4px;line-height:1.5;}
 
 /* LOGIN */
-#login-screen{display:none;position:fixed;inset:0;z-index:9000;background:var(--bg);align-items:center;justify-content:center;}
+#login-screen{display:none;position:fixed;inset:0;z-index:9000;background:#111111;align-items:center;justify-content:center;}
 #login-screen.visible{display:flex;}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.15);}
 .login-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);text-align:center;line-height:1.2;margin-bottom:6px;}
