@@ -2460,6 +2460,10 @@ function saveActo(){
     estado:document.getElementById('a-estado').value,
     honorario:hon,
     saldo:nuevoSaldo,
+    porcentaje:document.getElementById('a-porc')?.value||'',
+    porcBase:document.getElementById('a-porc-base')?.value||'',
+    porcDem:document.getElementById('a-porc-dem')?.value||'',
+    porcDemBase:document.getElementById('a-porc-dem-base')?.value||'',
     notas:document.getElementById('a-notas').value,
     docs:existing?existing.docs||[]:[]
   };
@@ -2587,7 +2591,13 @@ function renderActos(){
       <td data-label="Fecha" style="font-size:13px">${fmt(a.fecha)}</td>
       <td data-label="Cliente"><div class="td-main">${cNom(a.clienteId)}</div></td>
       <td data-label="Tipo"><span class="tag tag-civil" style="font-size:11px">${a.tipo}</span></td>
-      <td data-label="Descripción"><div class="td-main">${a.titulo}</div><div class="td-sub">${a.notas?a.notas.slice(0,60)+(a.notas.length>60?'...':''):''}</div></td>
+      <td data-label="Descripción">
+        <div class="td-main">${a.titulo}</div>
+        <div class="td-sub">${a.notas?a.notas.slice(0,60)+(a.notas.length>60?'...':''):''}</div>
+        ${a.porcentaje?`<div class="td-sub" style="color:var(--gold);font-size:11px">⚖️ Actora: ${a.porcentaje}% ${a.porcBase?'('+a.porcBase+')':''}</div>`:''}
+        ${a.porcDem?`<div class="td-sub" style="color:var(--orange);font-size:11px">⚖️ Demandada: ${a.porcDem}% ${a.porcDemBase?'('+a.porcDemBase+')':''}</div>`:''}
+        ${a.rol?`<div class="td-sub" style="color:var(--text-dim);font-size:11px">Mi rol: ${a.rol}</div>`:''}
+      </td>
       <td data-label="Estado">${etag[a.estado]||etag['En proceso']}</td>
       <td data-label="Honorario">
         ${a.honorario>0?`<div style="font-weight:700;color:var(--gold)">${$m(a.honorario)}</div>${ctag[a.cobro]||''}` :'<span style="color:var(--text-dim)">—</span>'}
