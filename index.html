@@ -366,7 +366,7 @@ textarea{resize:vertical;min-height:75px;}
 <div class="page" id="page-expedientes">
   <div class="ph">
     <div><div class="ph-title">Expedientes</div><div class="ph-sub">Causas judiciales</div></div>
-    <button class="btn btn-gold" onclick="expEditId=null;document.getElementById('m-exp-title').textContent='Nueva Causa';clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc']);document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;openM('m-exp')">＋ Nueva causa</button>
+    <button class="btn btn-gold" onclick="expEditId=null;document.getElementById('m-exp-title').textContent='Nueva Causa';clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem']);document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;openM('m-exp')">＋ Nueva causa</button>
   </div>
   <div class="tcard">
     <div class="tcard-header">
@@ -453,7 +453,7 @@ textarea{resize:vertical;min-height:75px;}
 <div class="page" id="page-actos">
   <div class="ph">
     <div><div class="ph-title">Trabajos Extrajudiciales</div><div class="ph-sub">Trabajos extrajudiciales y asesoramiento</div></div>
-    <button class="btn btn-gold" onclick="actoEditId=null;document.getElementById('m-acto-title').textContent='Nuevo Trabajo Extrajudicial';clr(['a-titulo','a-honorario','a-notas']);openM('m-acto')">＋ Nuevo acto</button>
+    <button class="btn btn-gold" onclick="actoEditId=null;document.getElementById('m-acto-title').textContent='Nuevo Trabajo Extrajudicial';clr(['a-titulo','a-honorario','a-notas']);const _acl=document.getElementById('acto-contrapartes-lista');if(_acl)_acl.innerHTML='';actoContrapartesCount=0;openM('m-acto')">＋ Nuevo acto</button>
   </div>
   <div class="tcard">
     <div class="tcard-header">
@@ -665,6 +665,16 @@ textarea{resize:vertical;min-height:75px;}
       </div>
       <div class="fg"><label>Fuero</label><select id="e-fuero"><option>Civil</option><option>Penal</option><option>Laboral</option><option>Familia</option><option>Contencioso Adm.</option><option>Comercial</option><option>Otro</option></select></div>
       <div class="fg full"><label>Juzgado / Tribunal</label><input id="e-juz" placeholder="Juzgado Civil Nº 3 - CABA"></div>
+      <div class="fg"><label>Mi rol en la causa</label>
+        <select id="e-rol">
+          <option value="Parte actora">⚔️ Parte actora (demandante)</option>
+          <option value="Parte demandada">🛡 Parte demandada</option>
+          <option value="Tercero citado">📋 Tercero citado</option>
+          <option value="Querellante">⚖️ Querellante</option>
+          <option value="Defensa penal">🔒 Defensa penal</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
 
       <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">👤 Parte actora / Cliente</div>
@@ -678,19 +688,40 @@ textarea{resize:vertical;min-height:75px;}
       </div>
 
       <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">⚔️ Parte demandada / Contrapartes</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">⚔️ Contraparte</div>
         <div id="contrapartes-lista"></div>
         <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="agregarContraparte()">＋ Agregar contraparte</button>
       </div>
 
-      <div class="fg"><label>% Honorarios a cobrar</label>
-        <input type="number" id="e-porc" placeholder="Ej: 15" min="0" max="100" step="0.5">
-        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">Porcentaje acordado con el cliente</div>
+      <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">⚔️ Contraparte</div>
+        <div id="acto-contrapartes-lista"></div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="agregarContraparteActo()">＋ Agregar contraparte</button>
       </div>
-      <div class="fg"><label>Base de cálculo</label>
+
+      <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">💰 Honorarios</div>
+      </div>
+      <div class="fg"><label>% Parte actora (quien defiendo)</label>
+        <input type="number" id="e-porc" placeholder="Ej: 15" min="0" max="100" step="0.5">
+        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">% acordado con mi cliente</div>
+      </div>
+      <div class="fg"><label>Base de cálculo — Actora</label>
         <select id="e-porc-base">
           <option value="Monto demanda">Monto de la demanda</option>
           <option value="Monto sentencia">Monto de la sentencia</option>
+          <option value="Acuerdo fijo">Honorario fijo acordado</option>
+          <option value="A determinar">A determinar</option>
+        </select>
+      </div>
+      <div class="fg"><label>% Parte demandada (contraparte)</label>
+        <input type="number" id="e-porc-dem" placeholder="Ej: 10" min="0" max="100" step="0.5">
+        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">% a cobrar a la contraparte</div>
+      </div>
+      <div class="fg"><label>Base de cálculo — Demandada</label>
+        <select id="e-porc-dem-base">
+          <option value="Monto sentencia">Monto de la sentencia</option>
+          <option value="Monto demanda">Monto de la demanda</option>
           <option value="Acuerdo fijo">Honorario fijo acordado</option>
           <option value="A determinar">A determinar</option>
         </select>
@@ -749,17 +780,17 @@ textarea{resize:vertical;min-height:75px;}
       <!-- Persona física: DNI + CUIL -->
       <div class="fg" id="campo-dni">
         <label>DNI</label>
-        <input id="c-dni" placeholder="12.345.678" oninput="formatDNI(this);checkDuplicateClient(this.value)">
+        <input id="c-dni" placeholder="12.345.678" onblur="checkDuplicateClient(this.value)">
         <div id="c-dni-alert" style="font-size:12px;color:var(--orange);margin-top:3px;display:none"></div>
       </div>
       <div class="fg" id="campo-cuil">
         <label>CUIL</label>
-        <input id="c-cuil" placeholder="20-12345678-9" oninput="formatCUIL(this)">
+        <input id="c-cuil" placeholder="20-12345678-9">
       </div>
       <!-- Persona jurídica: solo CUIT -->
       <div class="fg full" id="campo-cuit" style="display:none">
         <label>CUIT</label>
-        <input id="c-cuit" placeholder="30-12345678-9" oninput="formatCUIL(this);checkDuplicateClient(this.value)">
+        <input id="c-cuit" placeholder="30-12345678-9" onblur="checkDuplicateClient(this.value)">
         <div id="c-cuit-alert" style="font-size:12px;color:var(--orange);margin-top:3px;display:none"></div>
       </div>
       <div class="fg"><label>Pasaporte (opcional)</label><input id="c-pasaporte" placeholder="AAB123456"></div>
@@ -1094,8 +1125,11 @@ function editExp(id){
   document.getElementById('e-juz').value=e.juzgado||'';
   document.getElementById('e-notas').value=e.notas||'';
   // Load search field with client name
+  const _erol=document.getElementById('e-rol');if(_erol)_erol.value=e.rol||'Parte actora';
   const _ep=document.getElementById('e-porc');if(_ep)_ep.value=e.porcentaje||'';
   const _epb=document.getElementById('e-porc-base');if(_epb)_epb.value=e.porcBase||'Monto demanda';
+  const _epd=document.getElementById('e-porc-dem');if(_epd)_epd.value=e.porcDem||'';
+  const _epdb=document.getElementById('e-porc-dem-base');if(_epdb)_epdb.value=e.porcDemBase||'Monto sentencia';
   const eCli=S.clientes.find(x=>x.id===e.clienteId);
   const searchEl=document.getElementById('e-cli-search');
   if(searchEl&&eCli) searchEl.value=eCli.nombre+' ('+(eCli.dni||'Sin DNI')+')';
@@ -1110,6 +1144,7 @@ function saveExp(){
   const datos={
     nro,
     clienteId:document.getElementById('e-cli').value,
+    rol:document.getElementById('e-rol').value,
     jurisdiccion:document.getElementById('e-jurisdiccion').value,
     fuero:document.getElementById('e-fuero').value,
     estado:document.getElementById('e-estado').value,
@@ -1117,6 +1152,8 @@ function saveExp(){
     contrapartes:getContrapartes(),
     porcentaje:document.getElementById('e-porc').value,
     porcBase:document.getElementById('e-porc-base').value,
+    porcDem:document.getElementById('e-porc-dem').value,
+    porcDemBase:document.getElementById('e-porc-dem-base').value,
     notas:document.getElementById('e-notas').value
   };
   if(expEditId){
@@ -1131,7 +1168,7 @@ function saveExp(){
   save();
   closeM('m-exp');
   document.getElementById('m-exp-title').textContent='Nueva Causa';
-  clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc']);document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;
+  clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem']);document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;
   renderAll();
 }
 
@@ -1155,8 +1192,12 @@ function renderExp(){
     const docs=e.docs||[];
     const ndocs=docs.length;
     html+=`<tr>
-      <td data-label="Expediente"><div class="td-main">${e.nro}</div>${e.porcentaje?`<div class="td-sub" style="color:var(--gold)">⚖️ ${e.porcentaje}% — ${e.porcBase||''}</div>`:''}</td>
-      <td data-label="Cliente"><div class="td-main">${cNom(e.clienteId)}</div></td>
+      <td data-label="Expediente">
+        <div class="td-main">${e.nro}</div>
+        ${e.porcentaje?`<div class="td-sub" style="color:var(--gold)">⚖️ Actora: ${e.porcentaje}%</div>`:''}
+        ${e.porcDem?`<div class="td-sub" style="color:var(--orange)">⚖️ Demandada: ${e.porcDem}%</div>`:''}
+      </td>
+      <td data-label="Cliente"><div class="td-main">${cNom(e.clienteId)}</div>${e.rol?`<div class="td-sub" style="color:var(--text-sub);font-size:11px">${e.rol}</div>`:''}</td>
       <td data-label="Fuero"><span class="tag tag-${fc[e.fuero]||'civil'}">${e.fuero}</span></td>
       <td data-label="Juzgado"><span style="font-size:13px;color:var(--text-sub)">${e.juzgado||'—'}</span></td>
       <td data-label="Estado">${etag[e.estado]||etag['Activo']}</td>
@@ -2377,7 +2418,9 @@ function saveActo(){
     titulo,
     fecha:document.getElementById('a-fecha').value,
     clienteId:document.getElementById('a-cli').value,
+    rol:document.getElementById('a-rol')?.value||'',
     tipo:document.getElementById('a-tipo').value,
+    contrapartes:getContrapartesActo(),
     estado:document.getElementById('a-estado').value,
     honorario:hon,
     saldo:nuevoSaldo,
@@ -2407,6 +2450,8 @@ function editActo(id){
   document.getElementById('m-acto-title').textContent='Editar Trabajo Extrajudicial';
   document.getElementById('a-fecha').value=a.fecha||'';
   document.getElementById('a-cli').value=a.clienteId||'';
+  const _arol=document.getElementById('a-rol');if(_arol)_arol.value=a.rol||'Parte actora';
+  renderContrapartesActo(a.contrapartes||[]);
   document.getElementById('a-tipo').value=a.tipo||'Contrato';
   document.getElementById('a-estado').value=a.estado||'En proceso';
   document.getElementById('a-titulo').value=a.titulo||'';
@@ -2414,6 +2459,8 @@ function editActo(id){
   document.getElementById('a-cobro').value=a.cobro||'Pendiente';
   const _ap=document.getElementById('a-porc');if(_ap)_ap.value=a.porcentaje||'';
   const _apb=document.getElementById('a-porc-base');if(_apb)_apb.value=a.porcBase||'Honorario fijo';
+  const _apd=document.getElementById('a-porc-dem');if(_apd)_apd.value=a.porcDem||'';
+  const _apdb=document.getElementById('a-porc-dem-base');if(_apdb)_apdb.value=a.porcDemBase||'% del acto';
   document.getElementById('a-notas').value=a.notas||'';
   document.getElementById('m-acto').classList.add('open');
 }
@@ -2751,17 +2798,21 @@ function agregarContraparte(){
     </div>
     <div class="form-grid">
       <div class="fg full"><label>Nombre / Razón social</label><input id="contra-nombre-${contrapartesCount}" placeholder="Nombre o razón social"></div>
-      <div class="fg"><label>Tipo</label>
-        <select id="contra-tipo-${contrapartesCount}">
-          <option value="Persona física">👤 Persona física</option>
+      <div class="fg"><label>Rol en la causa</label>
+        <select id="contra-rol-${contrapartesCount}">
+          <option value="Parte demandada">🛡 Parte demandada</option>
+          <option value="Parte actora">⚔️ Parte actora</option>
           <option value="Aseguradora">🛡 Aseguradora</option>
           <option value="Empresa">🏢 Empresa</option>
           <option value="Organismo público">🏛 Organismo público</option>
+          <option value="Tercero citado">📋 Tercero citado</option>
           <option value="Otro">Otro</option>
         </select>
       </div>
-      <div class="fg"><label>DNI / CUIT</label><input id="contra-dni-${contrapartesCount}" placeholder="20-12345678-9" oninput="formatDoc(this)"></div>
-      <div class="fg"><label>Abogado patrocinante</label><input id="contra-abog-${contrapartesCount}" placeholder="Dr/a. ..."></div>
+      <div class="fg"><label>DNI / CUIT</label><input id="contra-dni-${contrapartesCount}" placeholder="20-12345678-9"></div>
+      <div class="fg"><label>Abogado / Letrado patrocinante</label><input id="contra-abog-${contrapartesCount}" placeholder="Dr/a. ..."></div>
+      <div class="fg"><label>Teléfono del letrado</label><input id="contra-tel-${contrapartesCount}" placeholder="11 4567-8901"></div>
+      <div class="fg"><label>Email del letrado</label><input id="contra-email-${contrapartesCount}" placeholder="letrado@email.com"></div>
     </div>`;
   lista.appendChild(div);
 }
@@ -2773,9 +2824,11 @@ function getContrapartes(){
     const nombre=document.getElementById('contra-nombre-'+n)?.value?.trim();
     if(nombre) lista.push({
       nombre,
-      tipo:document.getElementById('contra-tipo-'+n)?.value||'Persona física',
+      rol:document.getElementById('contra-rol-'+n)?.value||'Parte demandada',
       dni:document.getElementById('contra-dni-'+n)?.value||'',
-      abogado:document.getElementById('contra-abog-'+n)?.value||''
+      abogado:document.getElementById('contra-abog-'+n)?.value||'',
+      telAbogado:document.getElementById('contra-tel-'+n)?.value||'',
+      emailAbogado:document.getElementById('contra-email-'+n)?.value||''
     });
   });
   return lista;
@@ -2788,33 +2841,37 @@ function renderContrapartes(contrapartes){
   contrapartesCount=0;
   (contrapartes||[]).forEach(c=>{
     contrapartesCount++;
+    const n=contrapartesCount;
+    const rolOpts=[
+      ['Parte demandada','🛡 Parte demandada'],
+      ['Parte actora','⚔️ Parte actora'],
+      ['Aseguradora','🛡 Aseguradora'],
+      ['Empresa','🏢 Empresa'],
+      ['Organismo público','🏛 Organismo público'],
+      ['Tercero citado','📋 Tercero citado'],
+      ['Otro','Otro']
+    ].map(([v,l])=>`<option value="${v}" ${c.rol===v||c.tipo===v?'selected':''}>${l}</option>`).join('');
     const div=document.createElement('div');
-    div.id='contra-item-'+contrapartesCount;
+    div.id='contra-item-'+n;
     div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px';
     div.innerHTML=`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:12px;font-weight:700;color:var(--text-sub)">Contraparte ${contrapartesCount}</span>
-        <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('contra-item-${contrapartesCount}').remove()">✕</button>
+        <span style="font-size:12px;font-weight:700;color:var(--text-sub)">Contraparte ${n}</span>
+        <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('contra-item-${n}').remove()">✕</button>
       </div>
       <div class="form-grid">
-        <div class="fg full"><label>Nombre / Razón social</label><input id="contra-nombre-${contrapartesCount}" value="${c.nombre||''}" placeholder="Nombre o razón social"></div>
-        <div class="fg"><label>Tipo</label>
-          <select id="contra-tipo-${contrapartesCount}">
-            <option value="Persona física" ${c.tipo==='Persona física'?'selected':''}>👤 Persona física</option>
-            <option value="Aseguradora" ${c.tipo==='Aseguradora'?'selected':''}>🛡 Aseguradora</option>
-            <option value="Empresa" ${c.tipo==='Empresa'?'selected':''}>🏢 Empresa</option>
-            <option value="Organismo público" ${c.tipo==='Organismo público'?'selected':''}>🏛 Organismo público</option>
-            <option value="Otro" ${c.tipo==='Otro'?'selected':''}>Otro</option>
-          </select>
-        </div>
-        <div class="fg"><label>DNI / CUIT</label><input id="contra-dni-${contrapartesCount}" value="${c.dni||''}" placeholder="20-12345678-9"></div>
-        <div class="fg"><label>Abogado patrocinante</label><input id="contra-abog-${contrapartesCount}" value="${c.abogado||''}" placeholder="Dr/a. ..."></div>
+        <div class="fg full"><label>Nombre / Razón social</label><input id="contra-nombre-${n}" value="${c.nombre||''}" placeholder="Nombre o razón social"></div>
+        <div class="fg"><label>Rol en la causa</label><select id="contra-rol-${n}">${rolOpts}</select></div>
+        <div class="fg"><label>DNI / CUIT</label><input id="contra-dni-${n}" value="${c.dni||''}" placeholder="20-12345678-9"></div>
+        <div class="fg"><label>Abogado / Letrado patrocinante</label><input id="contra-abog-${n}" value="${c.abogado||''}" placeholder="Dr/a. ..."></div>
+        <div class="fg"><label>Teléfono del letrado</label><input id="contra-tel-${n}" value="${c.telAbogado||''}" placeholder="11 4567-8901"></div>
+        <div class="fg"><label>Email del letrado</label><input id="contra-email-${n}" value="${c.emailAbogado||''}" placeholder="letrado@email.com"></div>
       </div>`;
     lista.appendChild(div);
   });
 }
 
-// ── FORMATO AUTOMÁTICO DOCUMENTOS ──
+// ── DOCUMENTOS ──
 function toggleCamposDoc(){
   const tipo=document.getElementById('c-tipo-persona')?.value||'Fisica';
   const campoDni=document.getElementById('campo-dni');
@@ -2825,22 +2882,7 @@ function toggleCamposDoc(){
   if(campoCuit) campoCuit.style.display=tipo==='Juridica'?'':'none';
 }
 
-function formatDNI(input){
-  let v=input.value.replace(/[^0-9]/g,'').slice(0,8);
-  if(v.length>6)      v=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
-  else if(v.length>3) v=v.slice(0,2)+'.'+v.slice(2,5);
-  input.value=v;
-}
-
-function formatCUIL(input){
-  let v=input.value.replace(/[^0-9]/g,'').slice(0,11);
-  if(v.length>10)    v=v.slice(0,2)+'-'+v.slice(2,10)+'-'+v.slice(10);
-  else if(v.length>2) v=v.slice(0,2)+'-'+v.slice(2);
-  input.value=v;
-}
-
-// Mantener compatibilidad con contrapartes
-function formatDoc(input){ formatCUIL(input); }
+function formatDoc(input){} // sin formato automático
 
 
 function checkDuplicateClient(val){
@@ -2861,6 +2903,96 @@ function checkDuplicateClient(val){
   } else {
     alertEl.style.display='none';
   }
+}
+
+
+// ── CONTRAPARTES EXTRAJUDICIALES ──
+let actoContrapartesCount=0;
+
+function agregarContraparteActo(){
+  actoContrapartesCount++;
+  const lista=document.getElementById('acto-contrapartes-lista');
+  if(!lista)return;
+  const n=actoContrapartesCount;
+  const div=document.createElement('div');
+  div.id='acto-contra-item-'+n;
+  div.style.cssText='background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px';
+  div.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:var(--text-sub)">Contraparte ${n}</span>
+      <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('acto-contra-item-${n}').remove()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full"><label>Nombre / Razón social</label><input id="acto-contra-nombre-${n}" placeholder="Nombre o razón social"></div>
+      <div class="fg"><label>Rol en el asunto</label>
+        <select id="acto-contra-rol-${n}">
+          <option value="Parte demandada">🛡 Parte demandada</option>
+          <option value="Parte actora">⚔️ Parte actora</option>
+          <option value="Aseguradora">🛡 Aseguradora</option>
+          <option value="Empresa">🏢 Empresa</option>
+          <option value="Organismo público">🏛 Organismo público</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="fg"><label>DNI / CUIT</label><input id="acto-contra-dni-${n}" placeholder="20-12345678-9"></div>
+      <div class="fg"><label>Abogado / Letrado patrocinante</label><input id="acto-contra-abog-${n}" placeholder="Dr/a. ..."></div>
+      <div class="fg"><label>Teléfono del letrado</label><input id="acto-contra-tel-${n}" placeholder="11 4567-8901"></div>
+      <div class="fg"><label>Email del letrado</label><input id="acto-contra-email-${n}" placeholder="letrado@email.com"></div>
+    </div>`;
+  lista.appendChild(div);
+}
+
+function getContrapartesActo(){
+  const lista=[];
+  document.querySelectorAll('[id^="acto-contra-item-"]').forEach(item=>{
+    const n=item.id.replace('acto-contra-item-','');
+    const nombre=document.getElementById('acto-contra-nombre-'+n)?.value?.trim();
+    if(nombre) lista.push({
+      nombre,
+      rol:document.getElementById('acto-contra-rol-'+n)?.value||'Parte demandada',
+      dni:document.getElementById('acto-contra-dni-'+n)?.value||'',
+      abogado:document.getElementById('acto-contra-abog-'+n)?.value||'',
+      telAbogado:document.getElementById('acto-contra-tel-'+n)?.value||'',
+      emailAbogado:document.getElementById('acto-contra-email-'+n)?.value||''
+    });
+  });
+  return lista;
+}
+
+function renderContrapartesActo(contrapartes){
+  const lista=document.getElementById('acto-contrapartes-lista');
+  if(!lista)return;
+  lista.innerHTML='';
+  actoContrapartesCount=0;
+  (contrapartes||[]).forEach(c=>{
+    actoContrapartesCount++;
+    const n=actoContrapartesCount;
+    const rolOpts=[
+      ['Parte demandada','🛡 Parte demandada'],
+      ['Parte actora','⚔️ Parte actora'],
+      ['Aseguradora','🛡 Aseguradora'],
+      ['Empresa','🏢 Empresa'],
+      ['Organismo público','🏛 Organismo público'],
+      ['Otro','Otro']
+    ].map(([v,l])=>`<option value="${v}" ${c.rol===v?'selected':''}>${l}</option>`).join('');
+    const div=document.createElement('div');
+    div.id='acto-contra-item-'+n;
+    div.style.cssText='background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px';
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:700;color:var(--text-sub)">Contraparte ${n}</span>
+        <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('acto-contra-item-${n}').remove()">✕</button>
+      </div>
+      <div class="form-grid">
+        <div class="fg full"><label>Nombre / Razón social</label><input id="acto-contra-nombre-${n}" value="${c.nombre||''}" placeholder="Nombre o razón social"></div>
+        <div class="fg"><label>Rol en el asunto</label><select id="acto-contra-rol-${n}">${rolOpts}</select></div>
+        <div class="fg"><label>DNI / CUIT</label><input id="acto-contra-dni-${n}" value="${c.dni||''}" placeholder="20-12345678-9"></div>
+        <div class="fg"><label>Abogado / Letrado patrocinante</label><input id="acto-contra-abog-${n}" value="${c.abogado||''}" placeholder="Dr/a. ..."></div>
+        <div class="fg"><label>Teléfono del letrado</label><input id="acto-contra-tel-${n}" value="${c.telAbogado||''}" placeholder="11 4567-8901"></div>
+        <div class="fg"><label>Email del letrado</label><input id="acto-contra-email-${n}" value="${c.emailAbogado||''}" placeholder="letrado@email.com"></div>
+      </div>`;
+    lista.appendChild(div);
+  });
 }
 
 // ── RENDER ALL ──
@@ -2916,6 +3048,16 @@ checkSession();
           <option value="Cancelado">❌ Cancelado</option>
         </select>
       </div>
+      <div class="fg"><label>Mi rol en el asunto</label>
+        <select id="a-rol">
+          <option value="Parte actora">⚔️ Parte actora (demandante)</option>
+          <option value="Parte demandada">🛡 Parte demandada</option>
+          <option value="Requirente">📋 Requirente</option>
+          <option value="Asesor">💼 Asesor jurídico</option>
+          <option value="Mediador">🤝 Mediador</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
       <div class="fg full"><label>Título / Descripción breve</label><input id="a-titulo" placeholder="Ej: Contrato de locación — García/López"></div>
       <div class="fg"><label>Honorario pactado ($)</label><input type="number" id="a-honorario" placeholder="0"></div>
       <div class="fg"><label>Estado de cobro</label>
@@ -2925,14 +3067,34 @@ checkSession();
         </select>
       </div>
       <p style="font-size:11.5px;color:var(--text-sub);grid-column:1/-1;margin-top:-4px">💡 El honorario queda pendiente. Usá "💳 Pago extrajudicial" para registrar cobros y descontarlos.</p>
-      <div class="fg"><label>% Honorarios a cobrar (opcional)</label>
-        <input type="number" id="a-porc" placeholder="Ej: 10" min="0" max="100" step="0.5">
-        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">Si aplica porcentaje en vez de monto fijo</div>
+      <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">⚔️ Contraparte</div>
+        <div id="acto-contrapartes-lista"></div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="agregarContraparteActo()">＋ Agregar contraparte</button>
       </div>
-      <div class="fg"><label>Base de cálculo</label>
+
+      <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">💰 Honorarios</div>
+      </div>
+      <div class="fg"><label>% Parte actora (quien defiendo)</label>
+        <input type="number" id="a-porc" placeholder="Ej: 10" min="0" max="100" step="0.5">
+        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">% acordado con mi cliente</div>
+      </div>
+      <div class="fg"><label>Base de cálculo — Actora</label>
         <select id="a-porc-base">
           <option value="Honorario fijo">Honorario fijo</option>
           <option value="% del acto">% del monto del acto</option>
+          <option value="A determinar">A determinar</option>
+        </select>
+      </div>
+      <div class="fg"><label>% Parte demandada (contraparte)</label>
+        <input type="number" id="a-porc-dem" placeholder="Ej: 10" min="0" max="100" step="0.5">
+        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">% a cobrar a la contraparte</div>
+      </div>
+      <div class="fg"><label>Base de cálculo — Demandada</label>
+        <select id="a-porc-dem-base">
+          <option value="% del acto">% del monto del acto</option>
+          <option value="Honorario fijo">Honorario fijo</option>
           <option value="A determinar">A determinar</option>
         </select>
       </div>
