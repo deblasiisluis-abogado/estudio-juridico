@@ -264,13 +264,13 @@ textarea{resize:vertical;min-height:75px;}
 <body>
 
 <!-- LOGIN SCREEN -->
-<div id="login-screen">
+<div id="login-screen" class="visible">
   <div class="login-box">
     <div class="login-logo">Estudio<br>Jurídico</div>
     <div class="login-sub">Dr. Luis de Blasiis</div>
     <div class="login-field">
       <label>Email</label>
-      <input type="email" id="login-email" placeholder="deblasiisluis@gmail.com" placeholder="correo@email.com">
+      <input type="email" id="login-email" placeholder="pablo.palmiero@gmail.com" value="deblasiisluis@gmail.com">
     </div>
     <div class="login-field">
       <label>Contraseña</label>
@@ -281,7 +281,7 @@ textarea{resize:vertical;min-height:75px;}
   </div>
 </div>
 
-<div class="app" id="main-app" style="display:flex">
+<div class="app" id="main-app" style="display:none">
 
 <button class="hamburger" onclick="toggleSB()">☰</button>
 <div class="overlay-bg" id="overlay" onclick="toggleSB()"></div>
@@ -487,8 +487,8 @@ textarea{resize:vertical;min-height:75px;}
 
   <!-- Balance cards -->
   <div class="fin-grid">
-    <div class="fin-card ingreso"><div class="fin-label">Cobrado — judicial</div><div class="fin-val" id="f-ingreso">$0</div></div>
-    <div class="fin-card ingreso" style="border-color:var(--blue)"><div class="fin-label">Cobrado — extrajudicial</div><div class="fin-val" style="color:var(--blue)" id="f-ingreso-ext">$0</div></div>
+    <div class="fin-card ingreso"><div class="fin-label">Cobrado — Judicial</div><div class="fin-val" id="f-ingreso">$0</div></div>
+    <div class="fin-card ingreso" style="border-color:var(--blue)"><div class="fin-label">Cobrado — Extrajudicial</div><div class="fin-val" style="color:var(--blue)" id="f-ingreso-ext">$0</div></div>
     <div class="fin-card ingreso" style="opacity:.9"><div class="fin-label">Total cobrado</div><div class="fin-val" style="color:var(--green)" id="f-ingreso-total">$0</div></div>
   </div>
   <div class="fin-grid">
@@ -497,9 +497,9 @@ textarea{resize:vertical;min-height:75px;}
     <div class="fin-card pendiente"><div class="fin-label">Total pendiente de cobro</div><div class="fin-val" id="f-pend">$0</div></div>
   </div>
   <div class="fin-grid">
-    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Honorarios a percibir — Judicial</div><div class="fin-val" style="color:var(--text)" id="f-total">$0</div></div>
-    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Honorarios a percibir — Extrajudicial</div><div class="fin-val" style="color:var(--blue)" id="f-total-ext">$0</div></div>
-    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Total honorarios a percibir</div><div class="fin-val" style="color:var(--gold)" id="f-total-global">$0</div></div>
+    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Facturado judicial (mes)</div><div class="fin-val" style="color:var(--text)" id="f-total">$0</div></div>
+    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Facturado extrajudicial (mes)</div><div class="fin-val" style="color:var(--blue)" id="f-total-ext">$0</div></div>
+    <div class="fin-card" style="background:var(--surface2)"><div class="fin-label">Total facturado (mes)</div><div class="fin-val" style="color:var(--gold)" id="f-total-global">$0</div></div>
   </div>
 
   <!-- Pendientes por cliente — TABLA DETALLADA -->
@@ -694,7 +694,14 @@ textarea{resize:vertical;min-height:75px;}
       </div>
 
       <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">💰 Honorarios</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">💰 Honorarios pactados</div>
+      </div>
+      <div class="fg"><label>Monto de honorarios ($)</label>
+        <input type="number" id="e-hon-monto" placeholder="0">
+        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">Se registra automáticamente en Finanzas</div>
+      </div>
+      <div class="fg"><label>Concepto del honorario</label>
+        <input id="e-hon-conc" placeholder="Ej: Honorarios por demanda laboral">
       </div>
       <div class="fg"><label>% Parte actora (quien defiendo)</label>
         <input type="number" id="e-porc" placeholder="Ej: 15" min="0" max="100" step="0.5">
@@ -993,10 +1000,12 @@ function ensureArrays(){
   S.actos=S.actos||[];
   S.pagosExt=S.pagosExt||[];
   S.profesionales=S.profesionales||[];
-  // Asegurar saldo en honorarios (solo si no definido)
-  S.honorarios.forEach(h=>{if(h.saldo===undefined)h.saldo=h.monto;});
-  // SIEMPRE recalcular saldo de actos desde pagosExt reales
-  // Esto garantiza consistencia aunque el dato venga de Supabase con saldo desactualizado
+  // SIEMPRE recalcular saldo de honorarios judiciales desde pagos reales
+  S.honorarios.forEach(h=>{
+    const pagado=S.pagos.filter(p=>p.honorarioId===h.id).reduce((s,p)=>s+p.monto,0);
+    h.saldo=Math.max(0,(h.monto||0)-pagado);
+  });
+  // SIEMPRE recalcular saldo de actos extrajudiciales desde pagosExt reales
   S.actos.forEach(a=>{
     if(a.honorario>0){
       const pagado=S.pagosExt.filter(p=>p.actoId===a.id).reduce((s,p)=>s+p.monto,0);
@@ -1120,6 +1129,16 @@ function editExp(id){
   document.getElementById('e-notas').value=e.notas||'';
   // Load search field with client name
   const _erol=document.getElementById('e-rol');if(_erol)_erol.value=e.rol||'Parte actora';
+  // Cargar honorario vinculado
+  const _ehm=document.getElementById('e-hon-monto');
+  const _ehc=document.getElementById('e-hon-conc');
+  if(e.honorarioId){
+    const h=S.honorarios.find(x=>x.id===e.honorarioId);
+    if(h){if(_ehm)_ehm.value=h.monto||'';if(_ehc)_ehc.value=h.concepto||'';}
+  } else {
+    if(_ehm)_ehm.value=e.honMonto||'';
+    if(_ehc)_ehc.value=e.honConc||'';
+  }
   const _ep=document.getElementById('e-porc');if(_ep)_ep.value=e.porcentaje||'';
   const _epb=document.getElementById('e-porc-base');if(_epb)_epb.value=e.porcBase||'Monto demanda';
   const _epd=document.getElementById('e-porc-dem');if(_epd)_epd.value=e.porcDem||'';
@@ -1135,9 +1154,12 @@ function editExp(id){
 function saveExp(){
   const nro=document.getElementById('e-nro').value.trim();
   if(!nro){alert('Ingresá el número de expediente.');return;}
+  const honMonto=parseFloat(document.getElementById('e-hon-monto').value)||0;
+  const honConc=document.getElementById('e-hon-conc').value.trim();
+  const cliId=document.getElementById('e-cli').value;
   const datos={
     nro,
-    clienteId:document.getElementById('e-cli').value,
+    clienteId:cliId,
     rol:document.getElementById('e-rol').value,
     jurisdiccion:document.getElementById('e-jurisdiccion').value,
     fuero:document.getElementById('e-fuero').value,
@@ -1148,21 +1170,46 @@ function saveExp(){
     porcBase:document.getElementById('e-porc-base').value,
     porcDem:document.getElementById('e-porc-dem').value,
     porcDemBase:document.getElementById('e-porc-dem-base').value,
-    notas:document.getElementById('e-notas').value
+    notas:document.getElementById('e-notas').value,
+    honMonto,
+    honConc
   };
+
+  let expId;
   if(expEditId){
-    // EDITAR: actualizar el existente
     const idx=S.expedientes.findIndex(x=>x.id===expEditId);
-    if(idx>=0) S.expedientes[idx]={...S.expedientes[idx],...datos};
+    if(idx>=0){
+      // Si cambió el monto, actualizar el honorario vinculado
+      const old=S.expedientes[idx];
+      if(honMonto>0 && old.honorarioId){
+        const h=S.honorarios.find(x=>x.id===old.honorarioId);
+        if(h){h.monto=honMonto;h.concepto=honConc||`Expediente ${nro}`;}
+      } else if(honMonto>0 && !old.honorarioId){
+        // Nuevo honorario para expediente editado
+        const newHon={id:uid(),fecha:new Date().toISOString().split('T')[0],clienteId:cliId,concepto:honConc||`Expediente ${nro}`,monto:honMonto,saldo:honMonto,expId:expEditId};
+        S.honorarios.push(newHon);
+        datos.honorarioId=newHon.id;
+      }
+      S.expedientes[idx]={...old,...datos};
+    }
+    expId=expEditId;
     expEditId=null;
   } else {
-    // NUEVO
-    S.expedientes.push({id:uid(),fecha:new Date().toISOString().split('T')[0],...datos});
+    expId=uid();
+    const newExp={id:expId,fecha:new Date().toISOString().split('T')[0],...datos};
+    // Auto-crear honorario si hay monto
+    if(honMonto>0){
+      const newHon={id:uid(),fecha:new Date().toISOString().split('T')[0],clienteId:cliId,concepto:honConc||`Expediente ${nro}`,monto:honMonto,saldo:honMonto,expId};
+      S.honorarios.push(newHon);
+      newExp.honorarioId=newHon.id;
+    }
+    S.expedientes.push(newExp);
   }
   save();
   closeM('m-exp');
   document.getElementById('m-exp-title').textContent='Nueva Causa';
-  clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem']);document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;
+  clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem','e-hon-monto','e-hon-conc']);
+  document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;
   renderAll();
 }
 
@@ -1188,6 +1235,7 @@ function renderExp(){
     html+=`<tr>
       <td data-label="Expediente">
         <div class="td-main">${e.nro}</div>
+        ${e.honorarioId?`<div class="td-sub" style="color:var(--green)">💰 Hon: ${$m(S.honorarios.find(h=>h.id===e.honorarioId)?.monto||0)}</div>`:''}
         ${e.porcentaje?`<div class="td-sub" style="color:var(--gold)">⚖️ Actora: ${e.porcentaje}%</div>`:''}
         ${e.porcDem?`<div class="td-sub" style="color:var(--orange)">⚖️ Demandada: ${e.porcDem}%</div>`:''}
       </td>
@@ -1590,8 +1638,7 @@ function savePago(){
   const hon=S.honorarios.find(h=>h.id===honId);
   if(!hon){alert('Honorario no encontrado.');return;}
   if(monto>hon.saldo+0.01){alert(`El pago ($${monto}) supera el saldo pendiente (${$m(hon.saldo)}). Ingresá un monto igual o menor.`);return;}
-  // descontar del saldo
-  hon.saldo=Math.max(0,hon.saldo-monto);
+  // El saldo se recalcula en ensureArrays automáticamente
   // registrar el pago
   S.pagos.push({
     id:uid(),
@@ -1687,7 +1734,7 @@ function renderFin(){
         return`<tr>
           <td data-label="Fecha">${fmt(h.fecha)}</td>
           <td data-label="Cliente"><b>${cNom(h.clienteId)}</b></td>
-          <td data-label="Concepto">${h.concepto||'—'}</td>
+          <td data-label="Concepto">${h.concepto||'—'}${h.expId?`<div class="td-sub" style="font-size:11px;color:var(--text-dim)">Exp: ${S.expedientes.find(e=>e.id===h.expId)?.nro||''}</div>`:''}</td>
           <td data-label="Monto"><b style="color:var(--gold)">${$m(h.monto)}</b></td>
           <td data-label="Saldo"><b style="color:${saldoColor}">${saldoLabel}</b></td>
           <td><button class="btn btn-danger btn-xs" onclick="delHonorario('${h.id}')">🗑</button></td>
@@ -1866,11 +1913,6 @@ function delHonorario(id){
 
 function delPago(id){
   if(!confirm('¿Eliminar este pago? El saldo del honorario se restaurará.'))return;
-  const pago=S.pagos.find(p=>p.id===id);
-  if(pago){
-    const hon=S.honorarios.find(h=>h.id===pago.honorarioId);
-    if(hon)hon.saldo=Math.min(hon.monto,hon.saldo+pago.monto);
-  }
   S.pagos=S.pagos.filter(p=>p.id!==id);
   save();renderAll();renderFin();
 }
