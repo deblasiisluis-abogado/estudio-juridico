@@ -445,7 +445,7 @@ textarea{resize:vertical;min-height:75px;}
       <div class="search-wrap">🔍<input type="text" placeholder="Buscar..." id="s-exp" oninput="renderExp()"></div>
     </div>
     <div style="overflow-x:auto">
-      <table><thead><tr><th>Nº Expediente</th><th>Cliente</th><th>Jurisdicción</th><th>Fuero</th><th>Juzgado</th><th>Estado</th><th>Contrapartes</th><th>Docs</th><th></th></tr></thead>
+      <table><thead><tr><th>Nº Expediente / Carátula</th><th>Cliente</th><th>Jurisdicción</th><th>Fuero</th><th>Juzgado</th><th>Estado</th><th>Contrapartes</th><th>Docs</th><th></th></tr></thead>
       <tbody id="t-exp"></tbody></table>
     </div>
   </div>
@@ -720,6 +720,7 @@ textarea{resize:vertical;min-height:75px;}
     <div class="modal-title" id="m-exp-title">Nueva Causa</div>
     <div class="form-grid">
       <div class="fg"><label>Nº Expediente</label><input id="e-nro" placeholder="Ej: 12345/2025"></div>
+      <div class="fg full"><label>Carátula</label><input id="e-caratula" placeholder="Ej: García Juan c/ Empresa SA s/ Daños y Perjuicios"></div>
       <div class="fg"><label>Estado</label><select id="e-estado">
         <option value="Activo">🟢 Activo</option>
         <option value="Pendiente">🟡 Pendiente</option>
@@ -767,11 +768,11 @@ textarea{resize:vertical;min-height:75px;}
       <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">💰 Honorarios pactados</div>
       </div>
-      <div class="fg"><label>Monto de honorarios ($)</label>
+      <div class="fg"><label>Honorario estimado ($) <span style="font-size:10px;color:var(--text-dim)">(informativo)</span></label>
         <input type="number" id="e-hon-monto" placeholder="0">
-        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">Se registra automáticamente en Finanzas</div>
+        <div style="font-size:11px;color:var(--text-sub);margin-top:3px">Solo referencia. El cobro se registra en Finanzas cuando se percibe.</div>
       </div>
-      <div class="fg"><label>Concepto del honorario</label>
+      <div class="fg"><label>Concepto / Referencia</label>
         <input id="e-hon-conc" placeholder="Ej: Honorarios por demanda laboral">
       </div>
       <div class="fg"><label>% Parte actora (quien defiendo)</label>
@@ -1154,7 +1155,8 @@ function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 function populateSels(){
-  ['e-cli','h-cli','p-cli','a-cli','pe-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';S.clientes.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
+  const cliOrdenados=[...S.clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+  ['e-cli','h-cli','p-cli','a-cli','pe-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';cliOrdenados.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
   ['v-exp','h-exp','g-exp'].forEach(id=>{const s=document.getElementById(id);if(!s)return;s.innerHTML='<option value="">Sin expediente</option>';S.expedientes.forEach(e=>s.innerHTML+=`<option value="${e.id}">${e.nro} – ${cNom(e.clienteId)}</option>`);});
 }
 
@@ -1192,6 +1194,7 @@ function editExp(id){
   populateSels();
   document.getElementById('m-exp-title').textContent='Editar Causa';
   document.getElementById('e-nro').value=e.nro||'';
+  const _ecar=document.getElementById('e-caratula');if(_ecar)_ecar.value=e.caratula||'';
   document.getElementById('e-cli').value=e.clienteId||'';
   document.getElementById('e-jurisdiccion').value=e.jurisdiccion||'Capital Federal';
   document.getElementById('e-fuero').value=e.fuero||'Civil';
@@ -1230,6 +1233,7 @@ function saveExp(){
   const cliId=document.getElementById('e-cli').value;
   const datos={
     nro,
+    caratula:document.getElementById('e-caratula').value.trim(),
     clienteId:cliId,
     rol:document.getElementById('e-rol').value,
     jurisdiccion:document.getElementById('e-jurisdiccion').value,
@@ -1246,47 +1250,25 @@ function saveExp(){
     honConc
   };
 
-  let expId;
+  // Guardar solo como dato informativo — no crea honorario en Finanzas
   if(expEditId){
     const idx=S.expedientes.findIndex(x=>x.id===expEditId);
-    if(idx>=0){
-      // Si cambió el monto, actualizar el honorario vinculado
-      const old=S.expedientes[idx];
-      if(honMonto>0 && old.honorarioId){
-        const h=S.honorarios.find(x=>x.id===old.honorarioId);
-        if(h){h.monto=honMonto;h.concepto=honConc||`Expediente ${nro}`;}
-      } else if(honMonto>0 && !old.honorarioId){
-        // Nuevo honorario para expediente editado
-        const newHon={id:uid(),fecha:new Date().toISOString().split('T')[0],clienteId:cliId,concepto:honConc||`Expediente ${nro}`,monto:honMonto,saldo:honMonto,expId:expEditId};
-        S.honorarios.push(newHon);
-        datos.honorarioId=newHon.id;
-      }
-      S.expedientes[idx]={...old,...datos};
-    }
-    expId=expEditId;
+    if(idx>=0) S.expedientes[idx]={...S.expedientes[idx],...datos};
     expEditId=null;
   } else {
-    expId=uid();
-    const newExp={id:expId,fecha:new Date().toISOString().split('T')[0],...datos};
-    // Auto-crear honorario si hay monto
-    if(honMonto>0){
-      const newHon={id:uid(),fecha:new Date().toISOString().split('T')[0],clienteId:cliId,concepto:honConc||`Expediente ${nro}`,monto:honMonto,saldo:honMonto,expId};
-      S.honorarios.push(newHon);
-      newExp.honorarioId=newHon.id;
-    }
-    S.expedientes.push(newExp);
+    S.expedientes.push({id:uid(),fecha:new Date().toISOString().split('T')[0],...datos});
   }
   save();
   closeM('m-exp');
   document.getElementById('m-exp-title').textContent='Nueva Causa';
-  clr(['e-nro','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem','e-hon-monto','e-hon-conc']);
+  clr(['e-nro','e-caratula','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem','e-hon-monto','e-hon-conc']);
   document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;
   renderAll();
 }
 
 function renderExp(){
   const q=(document.getElementById('s-exp')?.value||'').toLowerCase();
-  const rows=S.expedientes.filter(e=>e.nro.toLowerCase().includes(q)||cNom(e.clienteId).toLowerCase().includes(q)||(e.juzgado||'').toLowerCase().includes(q));
+  const rows=S.expedientes.filter(e=>e.nro.toLowerCase().includes(q)||cNom(e.clienteId).toLowerCase().includes(q)||(e.juzgado||'').toLowerCase().includes(q)||(e.caratula||'').toLowerCase().includes(q));
   document.getElementById('exp-count').textContent=rows.length+' expediente'+(rows.length!==1?'s':'');
   const tb=document.getElementById('t-exp');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📁</div>Sin expedientes.</div></td></tr>`;return;}
@@ -1306,7 +1288,8 @@ function renderExp(){
     html+=`<tr>
       <td data-label="Expediente">
         <div class="td-main">${e.nro}</div>
-        ${e.honorarioId?`<div class="td-sub" style="color:var(--green)">💰 Hon: ${$m(S.honorarios.find(h=>h.id===e.honorarioId)?.monto||0)}</div>`:''}
+        ${e.caratula?`<div class="td-sub" style="font-size:11px;color:var(--text-sub)">${e.caratula}</div>`:''}
+        ${e.honMonto?`<div class="td-sub" style="color:var(--text-sub);font-size:11px">💰 Est: ${$m(e.honMonto)}</div>`:''}
         ${e.porcentaje?`<div class="td-sub" style="color:var(--gold)">⚖️ Actora: ${e.porcentaje}%</div>`:''}
         ${e.porcDem?`<div class="td-sub" style="color:var(--orange)">⚖️ Demandada: ${e.porcDem}%</div>`:''}
       </td>
