@@ -749,14 +749,16 @@ textarea{resize:vertical;min-height:75px;}
       </div>
 
       <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">👤 Cliente</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px">👤 Clientes</div>
+        <div id="clientes-exp-lista"></div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="agregarClienteExp()">＋ Agregar cliente</button>
       </div>
-      <div class="fg full">
-        <label>Buscar cliente existente</label>
-        <input id="e-cli-search" placeholder="Ingresá DNI, CUIL o nombre para buscar..." oninput="buscarCliente(this.value,'e-cli-result','e-cli')" autocomplete="off">
-        <div id="e-cli-result" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:none;max-height:150px;overflow-y:auto;margin-top:4px"></div>
-        <select id="e-cli" style="margin-top:6px"><option value="">— O seleccioná de la lista —</option></select>
-        <div id="e-cli-nuevo-link" style="font-size:12px;color:var(--gold);cursor:pointer;margin-top:4px;display:none" onclick="abrirNuevoClienteDesdeExp()">＋ Este cliente no existe. Crearlo ahora</div>
+      <!-- Campo oculto para compatibilidad con código existente -->
+      <div style="display:none">
+        <select id="e-cli"><option value="">—</option></select>
+        <input id="e-cli-search">
+        <div id="e-cli-result"></div>
+        <div id="e-cli-nuevo-link"></div>
       </div>
 
       <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
@@ -1157,7 +1159,7 @@ document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e
 function populateSels(){
   const cliOrdenados=[...S.clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
   ['e-cli','h-cli','p-cli','a-cli','pe-cli'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">Seleccionar...</option>';cliOrdenados.forEach(c=>s.innerHTML+=`<option value="${c.id}">${c.nombre}</option>`);s.value=v;});
-  ['v-exp','h-exp','g-exp'].forEach(id=>{const s=document.getElementById(id);if(!s)return;s.innerHTML='<option value="">Sin expediente</option>';S.expedientes.forEach(e=>s.innerHTML+=`<option value="${e.id}">${e.nro} – ${cNom(e.clienteId)}</option>`);});
+  ['v-exp','h-exp','g-exp'].forEach(id=>{const s=document.getElementById(id);if(!s)return;s.innerHTML='<option value="">Sin expediente</option>';S.expedientes.forEach(e=>{const clis=e.clientes&&e.clientes.length?e.clientes.map(c=>cNom(c.id)).join(', '):cNom(e.clienteId);s.innerHTML+=`<option value="${e.id}">${e.nro} – ${clis}</option>`;});});
 }
 
 // ── HELPERS ──
@@ -1220,6 +1222,8 @@ function editExp(id){
   const eCli=S.clientes.find(x=>x.id===e.clienteId);
   const searchEl=document.getElementById('e-cli-search');
   if(searchEl&&eCli) searchEl.value=eCli.nombre+' ('+(eCli.dni||'Sin DNI')+')';
+  // Cargar clientes múltiples
+  renderClientesExp(e.clientes||(e.clienteId?[{id:e.clienteId,rol:'Principal'}]:[]));
   // Load contrapartes
   renderContrapartes(e.contrapartes||[]);
   document.getElementById('m-exp').classList.add('open');
@@ -1230,11 +1234,12 @@ function saveExp(){
   if(!nro){alert('Ingresá el número de expediente.');return;}
   const honMonto=parseFloat(document.getElementById('e-hon-monto').value)||0;
   const honConc=document.getElementById('e-hon-conc').value.trim();
-  const cliId=document.getElementById('e-cli').value;
+  const cliId=(getClientesExp()[0]?.id)||document.getElementById('e-cli').value||'';
   const datos={
     nro,
     caratula:document.getElementById('e-caratula').value.trim(),
-    clienteId:cliId,
+    clienteId:cliId, // primer cliente (compatibilidad)
+    clientes:getClientesExp(),
     rol:document.getElementById('e-rol').value,
     jurisdiccion:document.getElementById('e-jurisdiccion').value,
     fuero:document.getElementById('e-fuero').value,
@@ -1261,14 +1266,15 @@ function saveExp(){
   save();
   closeM('m-exp');
   document.getElementById('m-exp-title').textContent='Nueva Causa';
-  clr(['e-nro','e-caratula','e-juz','e-notas','e-cli-search','e-porc','e-porc-dem','e-hon-monto','e-hon-conc']);
+  clr(['e-nro','e-caratula','e-juz','e-notas','e-porc','e-porc-dem','e-hon-monto','e-hon-conc']);
   document.getElementById('contrapartes-lista').innerHTML='';contrapartesCount=0;
+  document.getElementById('clientes-exp-lista').innerHTML='';clientesExpCount=0;
   renderAll();
 }
 
 function renderExp(){
   const q=(document.getElementById('s-exp')?.value||'').toLowerCase();
-  const rows=S.expedientes.filter(e=>e.nro.toLowerCase().includes(q)||cNom(e.clienteId).toLowerCase().includes(q)||(e.juzgado||'').toLowerCase().includes(q)||(e.caratula||'').toLowerCase().includes(q));
+  const rows=S.expedientes.filter(e=>{const nombresClientes=(e.clientes&&e.clientes.length?e.clientes.map(c=>cNom(c.id)).join(' '):cNom(e.clienteId)).toLowerCase();return e.nro.toLowerCase().includes(q)||nombresClientes.includes(q)||(e.juzgado||'').toLowerCase().includes(q)||(e.caratula||'').toLowerCase().includes(q);});
   document.getElementById('exp-count').textContent=rows.length+' expediente'+(rows.length!==1?'s':'');
   const tb=document.getElementById('t-exp');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📁</div>Sin expedientes.</div></td></tr>`;return;}
@@ -1293,7 +1299,7 @@ function renderExp(){
         ${e.porcentaje?`<div class="td-sub" style="color:var(--gold)">⚖️ Actora: ${e.porcentaje}%</div>`:''}
         ${e.porcDem?`<div class="td-sub" style="color:var(--orange)">⚖️ Demandada: ${e.porcDem}%</div>`:''}
       </td>
-      <td data-label="Cliente"><div class="td-main">${cNom(e.clienteId)}</div>${e.rol?`<div class="td-sub" style="color:var(--text-sub);font-size:11px">${e.rol}</div>`:''}</td>
+      <td data-label="Cliente"><div class="td-main">${(e.clientes&&e.clientes.length?e.clientes.map(c=>cNom(c.id)).join(", "):cNom(e.clienteId))}</div>${e.rol?`<div class="td-sub" style="color:var(--text-sub);font-size:11px">${e.rol}</div>`:''}</td>
       <td data-label="Fuero"><span class="tag tag-${fc[e.fuero]||'civil'}">${e.fuero}</span></td>
       <td data-label="Juzgado"><span style="font-size:13px;color:var(--text-sub)">${e.juzgado||'—'}</span></td>
       <td data-label="Estado">${etag[e.estado]||etag['Activo']}</td>
@@ -3211,6 +3217,132 @@ function pedirPermisoNotificaciones(){
     } else {
       alert('Notificaciones denegadas. Podés activarlas desde la configuración del navegador.');
     }
+  });
+}
+
+
+// ── CLIENTES MÚLTIPLES EN EXPEDIENTE ──
+let clientesExpCount=0;
+
+function agregarClienteExp(){
+  clientesExpCount++;
+  const lista=document.getElementById('clientes-exp-lista');
+  if(!lista)return;
+  const n=clientesExpCount;
+  const cliOrdenados=[...S.clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+  const opts=cliOrdenados.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  const div=document.createElement('div');
+  div.id='cli-exp-item-'+n;
+  div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px';
+  div.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:var(--text-sub)">Cliente ${n}</span>
+      <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('cli-exp-item-${n}').remove()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="fg full">
+        <label>Seleccionar cliente</label>
+        <input id="cli-exp-search-${n}" placeholder="Buscar por nombre o DNI..." oninput="buscarClienteExp(this.value,${n})" autocomplete="off">
+        <div id="cli-exp-result-${n}" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;display:none;max-height:140px;overflow-y:auto;margin-top:4px;position:relative;z-index:100"></div>
+        <select id="cli-exp-sel-${n}" style="margin-top:6px"><option value="">— O elegí de la lista —</option>${opts}</select>
+      </div>
+      <div class="fg">
+        <label>Rol en la causa</label>
+        <select id="cli-exp-rol-${n}">
+          <option value="Principal">⭐ Principal</option>
+          <option value="Codemandante">⚔️ Codemandante</option>
+          <option value="Codemandado">🛡 Codemandado</option>
+          <option value="Tercero">📋 Tercero</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+    </div>`;
+  lista.appendChild(div);
+}
+
+function buscarClienteExp(q, n){
+  const res=document.getElementById('cli-exp-result-'+n);
+  const sel=document.getElementById('cli-exp-sel-'+n);
+  if(!res)return;
+  if(!q||q.length<2){res.style.display='none';return;}
+  const qClean=q.replace(/[\.\-]/g,'');
+  const encontrados=[...S.clientes]
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}))
+    .filter(c=>(c.dni||'').replace(/[\.\-]/g,'').includes(qClean)||(c.cuil||'').replace(/[\.\-]/g,'').includes(qClean)||(c.cuit||'').replace(/[\.\-]/g,'').includes(qClean)||c.nombre.toLowerCase().includes(q.toLowerCase()));
+  if(!encontrados.length){res.style.display='none';return;}
+  res.style.display='block';
+  res.innerHTML=encontrados.map(c=>`
+    <div onclick="seleccionarClienteExp(${n},'${c.id}')"
+      style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px"
+      onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background=''">
+      <b>${c.nombre}</b> <span style="color:var(--text-sub);font-size:11px">· ${c.tipoPersona==='Juridica'?'CUIT: '+(c.cuit||'—'):'DNI: '+(c.dni||'Sin DNI')}</span>
+    </div>`).join('');
+}
+
+function seleccionarClienteExp(n, cliId){
+  const sel=document.getElementById('cli-exp-sel-'+n);
+  const res=document.getElementById('cli-exp-result-'+n);
+  const search=document.getElementById('cli-exp-search-'+n);
+  if(sel) sel.value=cliId;
+  if(res) res.style.display='none';
+  if(search){
+    const c=S.clientes.find(x=>x.id===cliId);
+    if(c) search.value=c.nombre+' ('+(c.tipoPersona==='Juridica'?'CUIT: '+(c.cuit||'—'):'DNI: '+(c.dni||'Sin DNI'))+')';
+  }
+}
+
+function getClientesExp(){
+  const lista=[];
+  document.querySelectorAll('[id^="cli-exp-item-"]').forEach(item=>{
+    const n=item.id.replace('cli-exp-item-','');
+    const id=document.getElementById('cli-exp-sel-'+n)?.value;
+    if(id) lista.push({
+      id,
+      rol:document.getElementById('cli-exp-rol-'+n)?.value||'Principal'
+    });
+  });
+  return lista;
+}
+
+function renderClientesExp(clientes){
+  const lista=document.getElementById('clientes-exp-lista');
+  if(!lista)return;
+  lista.innerHTML='';
+  clientesExpCount=0;
+  const cliOrdenados=[...S.clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+  const opts=cliOrdenados.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  (clientes||[]).forEach(c=>{
+    clientesExpCount++;
+    const n=clientesExpCount;
+    const rolOpts=[
+      ['Principal','⭐ Principal'],['Codemandante','⚔️ Codemandante'],
+      ['Codemandado','🛡 Codemandado'],['Tercero','📋 Tercero'],['Otro','Otro']
+    ].map(([v,l])=>`<option value="${v}" ${c.rol===v?'selected':''}>${l}</option>`).join('');
+    const cliData=S.clientes.find(x=>x.id===c.id);
+    const div=document.createElement('div');
+    div.id='cli-exp-item-'+n;
+    div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px';
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:700;color:var(--text-sub)">Cliente ${n}</span>
+        <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('cli-exp-item-${n}').remove()">✕</button>
+      </div>
+      <div class="form-grid">
+        <div class="fg full">
+          <label>Seleccionar cliente</label>
+          <input id="cli-exp-search-${n}" value="${cliData?cliData.nombre+' ('+(cliData.tipoPersona==='Juridica'?'CUIT: '+(cliData.cuit||'—'):'DNI: '+(cliData.dni||'Sin DNI'))+')':''}" placeholder="Buscar por nombre o DNI..." oninput="buscarClienteExp(this.value,${n})" autocomplete="off">
+          <div id="cli-exp-result-${n}" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;display:none;max-height:140px;overflow-y:auto;margin-top:4px;position:relative;z-index:100"></div>
+          <select id="cli-exp-sel-${n}" style="margin-top:6px"><option value="">— O elegí de la lista —</option>${opts}</select>
+        </div>
+        <div class="fg">
+          <label>Rol en la causa</label>
+          <select id="cli-exp-rol-${n}">${rolOpts}</select>
+        </div>
+      </div>`;
+    lista.appendChild(div);
+    // Set selected value
+    const selEl=document.getElementById('cli-exp-sel-'+n);
+    if(selEl) selEl.value=c.id||'';
   });
 }
 
