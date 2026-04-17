@@ -1152,6 +1152,9 @@ function openM(id){
   el.classList.add('open');
   const t=new Date().toISOString().split('T')[0];
   el.querySelectorAll('input[type=date]').forEach(i=>{if(!i.value)i.value=t;});
+  // Refrescar listas de pagos al abrir el modal
+  if(id==='m-pago') setTimeout(populateHonorariosCliente,50);
+  if(id==='m-pago-ext') setTimeout(populateActosPendientes,50);
 }
 function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
@@ -1677,14 +1680,27 @@ function saveHonorario(){
 
 // ── PAGOS ──
 function populateHonorariosCliente(){
+  ensureArrays(); // recalcular saldos frescos antes de poblar
   const cliId=document.getElementById('p-cli').value;
   const sel=document.getElementById('p-hon');
   sel.innerHTML='<option value="">Seleccionar honorario pendiente...</option>';
-  document.getElementById('p-saldo-info').textContent='';
+  const saldoInfo=document.getElementById('p-saldo-info');
+  if(saldoInfo) saldoInfo.textContent='';
   if(!cliId)return;
-  const pendientes=S.honorarios.filter(h=>h.clienteId===cliId&&h.saldo>0);
+  const todos=S.honorarios.filter(h=>h.clienteId===cliId);
+  const pendientes=todos.filter(h=>h.saldo>0);
+  if(!pendientes.length){
+    if(todos.length){
+      sel.innerHTML='<option value="">Todos los honorarios de este cliente están cobrados ✅</option>';
+    } else {
+      sel.innerHTML='<option value="">Sin honorarios registrados para este cliente</option>';
+    }
+    return;
+  }
   pendientes.forEach(h=>{
-    sel.innerHTML+=`<option value="${h.id}">${h.concepto||'Sin concepto'} — Saldo: ${$m(h.saldo)}</option>`;
+    const cobrado=(h.monto||0)-(h.saldo||0);
+    const parcial=cobrado>0?` (cobrado ${$m(cobrado)})`:' ';
+    sel.innerHTML+=`<option value="${h.id}">${h.concepto||'Sin concepto'}${parcial}— Saldo: ${$m(h.saldo)}</option>`;
   });
 }
 
@@ -2724,20 +2740,30 @@ function renderActos(){
 
 // ── PAGOS EXTRAJUDICIALES ──
 function populateActosPendientes(){
+  ensureArrays(); // recalcular saldos frescos antes de poblar
   const cliId=document.getElementById('pe-cli')?.value;
   const sel=document.getElementById('pe-acto');
   if(!sel)return;
   sel.innerHTML='<option value="">Seleccionar trabajo pendiente...</option>';
-  document.getElementById('pe-saldo-info').textContent='';
+  const saldoInfo=document.getElementById('pe-saldo-info');
+  if(saldoInfo) saldoInfo.textContent='';
   if(!cliId)return;
-  const pendientes=(S.actos||[]).filter(a=>a.clienteId===cliId&&a.honorario>0&&(a.saldo===undefined?a.honorario:a.saldo)>0);
+  // Mostrar TODOS los trabajos con honorario, incluyendo los parcialmente cobrados
+  const conHonorario=(S.actos||[]).filter(a=>a.clienteId===cliId&&a.honorario>0);
+  const pendientes=conHonorario.filter(a=>(a.saldo||0)>0);
   if(!pendientes.length){
-    sel.innerHTML='<option value="">Sin trabajos pendientes de cobro</option>';
+    if(conHonorario.length){
+      sel.innerHTML='<option value="">Todos los trabajos de este cliente están cobrados ✅</option>';
+    } else {
+      sel.innerHTML='<option value="">Sin trabajos con honorario para este cliente</option>';
+    }
     return;
   }
   pendientes.forEach(a=>{
-    const saldo=a.saldo!==undefined?a.saldo:a.honorario;
-    sel.innerHTML+=`<option value="${a.id}">${a.titulo||a.tipo} — Saldo: $${saldo.toLocaleString('es-AR')}</option>`;
+    const saldo=a.saldo||0;
+    const cobrado=(a.honorario||0)-saldo;
+    const parcial=cobrado>0?` (cobrado ${$m(cobrado)})`:' ';
+    sel.innerHTML+=`<option value="${a.id}">${a.titulo||a.tipo}${parcial}— Saldo: ${$m(saldo)}</option>`;
   });
 }
 
